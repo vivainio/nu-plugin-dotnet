@@ -1,4 +1,5 @@
 
+using System.Reflection;
 using NuPluginDotNet.DotNet;
 using NuPluginDotNet.Types;
 
@@ -15,18 +16,36 @@ public class DotNetLoadAssemblyCommand : BaseCommand
 
     public override Task<PluginValue> ExecuteAsync(CommandArgs args)
     {
+        // Assembly path from --path parameter or first positional argument
+        var assemblyPath = args.GetOptionalString("path");
+        
         try
         {
-            // Assembly path from first positional argument
-            var assemblyPath = args.GetPositionalString(0);
+            
+            // If no --path parameter, try positional argument
+            if (string.IsNullOrWhiteSpace(assemblyPath))
+            {
+                assemblyPath = args.GetOptionalPositionalString(0);
+            }
             
             if (string.IsNullOrWhiteSpace(assemblyPath))
             {
-                return Task.FromResult(CreateError("Assembly path cannot be empty"));
+                return Task.FromResult(CreateError("Assembly path or name must be specified"));
             }
 
-            // Load the assembly
-            var assembly = AssemblyManager.LoadAssembly(assemblyPath);
+            // Load the assembly - try as path first, then as name
+            Assembly assembly;
+            try
+            {
+                // First try to load as file path
+                assembly = AssemblyManager.LoadAssembly(assemblyPath);
+            }
+            catch
+            {
+                // If that fails, try to load by name
+                assembly = AssemblyManager.LoadAssemblyByName(assemblyPath);
+            }
+            
             var assemblyInfo = AssemblyManager.GetAssemblyInfo(assembly);
             
             // Logger.LogInformation("Loaded assembly {AssemblyName} from {Path}", assemblyInfo.Name, assemblyPath);
@@ -52,7 +71,7 @@ public class DotNetLoadAssemblyCommand : BaseCommand
         }
         catch (Exception ex)
         {
-            return Task.FromResult(CreateError($"Failed to load assembly: {ex.Message}", ex));
+            return Task.FromResult(CreateError($"Failed to load assembly '{assemblyPath}': {ex.Message}", ex));
         }
     }
 } 

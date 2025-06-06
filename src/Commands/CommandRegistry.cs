@@ -130,13 +130,26 @@ public class CommandRegistry
                     shape = "String"
                 }
             },
+
             _ => new object[0]
         };
     }
 
     private object[] GetOptionalPositional(string commandName)
     {
-        return new object[0];
+        return commandName switch
+        {
+            "dn load-assembly" => new object[]
+            {
+                new
+                {
+                    name = "assembly",
+                    desc = "The assembly name or path to load",
+                    shape = "String"
+                }
+            },
+            _ => new object[0]
+        };
     }
 
     private object? GetRestPositional(string commandName)
@@ -155,31 +168,8 @@ public class CommandRegistry
 
     private object[] GetNamedParameters(string commandName)
     {
-        var baseParams = new[]
+        return commandName switch
         {
-            new
-            {
-                @long = "help",
-                @short = "h",
-                arg = (object?)null,
-                required = false,
-                desc = "Display the help message for this command"
-            }
-        };
-
-        var commandSpecificParams = commandName switch
-        {
-            "dn new" => new object[]
-            {
-                new
-                {
-                    @long = "type",
-                    @short = "t",
-                    arg = "String",
-                    required = false,
-                    desc = "The type name to create (required for parameterless constructors)"
-                }
-            },
             "dn load-assembly" => new object[]
             {
                 new
@@ -193,8 +183,6 @@ public class CommandRegistry
             },
             _ => new object[0]
         };
-
-        return baseParams.Concat(commandSpecificParams).ToArray();
     }
 
     private string GetCommandDescription(string commandName)
