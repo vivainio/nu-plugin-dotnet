@@ -1,0 +1,212 @@
+name: Manual Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_name:
+        description: 'Release name (e.g., "v1.0.0" or "Latest Build")'
+        required: true
+        default: 'Latest Build'
+      release_tag:
+        description: 'Release tag (e.g., "v1.0.0" or leave empty for timestamp)'
+        required: false
+      platforms:
+        description: 'Platforms to build (comma-separated: win-x64,linux-x64,osx-x64)'
+        required: false
+        default: 'win-x64,linux-x64,osx-x64'
+      prerelease:
+        description: 'Mark as pre-release'
+        required: false
+        default: true
+        type: boolean
+
+jobs:
+  build:
+    name: Build ${{ matrix.runtime }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - runtime: win-x64
+            os: windows-latest
+            artifact: nu_plugin_dotnet.exe
+            archive: zip
+          - runtime: linux-x64
+            os: ubuntu-latest
+            artifact: nu_plugin_dotnet
+            archive: tar.gz
+          - runtime: osx-x64
+            os: macos-latest
+            artifact: nu_plugin_dotnet
+            archive: tar.gz
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+    
+    - name: Check if platform should be built
+      id: should_build
+      run: |
+        platforms="${{ github.event.inputs.platforms }}"
+        runtime="${{ matrix.runtime }}"
+        if [[ "$platforms" == *"$runtime"* ]]; then
+          echo "build=true" >> $GITHUB_OUTPUT
+        else
+          echo "build=false" >> $GITHUB_OUTPUT
+        fi
+      shell: bash
+    
+    - name: Restore dependencies
+      if: steps.should_build.outputs.build == 'true'
+      run: dotnet restore
+    
+    - name: Build and publish
+      if: steps.should_build.outputs.build == 'true'
+      run: |
+        dotnet publish -c Release -r ${{ matrix.runtime }} --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=true -o ./publish/
+    
+    - name: Verify binary
+      if: steps.should_build.outputs.build == 'true'
+      run: |
+        ls -la ./publish/
+        file ./publish/${{ matrix.artifact }} || true
+      shell: bash
+    
+    - name: Create ZIP archive (Windows)
+      if: steps.should_build.outputs.build == 'true' && matrix.archive == 'zip'
+      run: |
+        cd publish
+        7z a ../nu-plugin-dotnet-${{ matrix.runtime }}.zip ${{ matrix.artifact }}
+        cd ..
+        echo "Archive created:"
+        ls -la nu-plugin-dotnet-${{ matrix.runtime }}.zip
+    
+    - name: Create TAR.GZ archive (Unix)
+      if: steps.should_build.outputs.build == 'true' && matrix.archive == 'tar.gz'
+      run: |
+        cd publish
+        tar -czf ../nu-plugin-dotnet-${{ matrix.runtime }}.tar.gz ${{ matrix.artifact }}
+        cd ..
+        echo "Archive created:"
+        ls -la nu-plugin-dotnet-${{ matrix.runtime }}.tar.gz
+    
+    - name: Generate checksums
+      if: steps.should_build.outputs.build == 'true'
+      run: |
+        if [[ "${{ matrix.archive }}" == "zip" ]]; then
+          if command -v sha256sum &> /dev/null; then
+            sha256sum nu-plugin-dotnet-${{ matrix.runtime }}.zip > nu-plugin-dotnet-${{ matrix.runtime }}.zip.sha256
+          else
+            # Windows PowerShell fallback
+            powershell -Command "Get-FileHash nu-plugin-dotnet-${{ matrix.runtime }}.zip -Algorithm SHA256 | Select-Object Hash | Out-File -FilePath nu-plugin-dotnet-${{ matrix.runtime }}.zip.sha256 -Encoding ASCII -NoNewline"
+          fi
+        else
+          sha256sum nu-plugin-dotnet-${{ matrix.runtime }}.tar.gz > nu-plugin-dotnet-${{ matrix.runtime }}.tar.gz.sha256
+        fi
+      shell: bash
+    
+    - name: Upload artifacts
+      if: steps.should_build.outputs.build == 'true'
+      uses: actions/upload-artifact@v4
+      with:
+        name: nu-plugin-dotnet-${{ matrix.runtime }}
+        path: |
+          nu-plugin-dotnet-${{ matrix.runtime }}.*
+        retention-days: 7
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Generate release tag
+      id: tag
+      run: |
+        if [ -n "${{ github.event.inputs.release_tag }}" ]; then
+          echo "tag=${{ github.event.inputs.release_tag }}" >> $GITHUB_OUTPUT
+        else
+          timestamp=$(date +"%Y%m%d-%H%M%S")
+          echo "tag=build-$timestamp" >> $GITHUB_OUTPUT
+        fi
+    
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+    
+    - name: List downloaded artifacts
+      run: |
+        echo "Downloaded artifacts:"
+        find . -name "nu-plugin-dotnet-*" -type f | sort
+    
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ steps.tag.outputs.tag }}
+        name: ${{ github.event.inputs.release_name }}
+        draft: false
+        prerelease: ${{ github.event.inputs.prerelease }}
+        generate_release_notes: false
+        files: |
+          **/nu-plugin-dotnet-*
+        body: |
+          # ${{ github.event.inputs.release_name }}
+          
+          🚀 **Manual release created from commit:** `${{ github.sha }}`
+          
+          ## 📦 Downloads
+          
+          Choose the appropriate binary for your platform:
+          
+          | Platform | Download | SHA256 |
+          |----------|----------|---------|
+          | Windows x64 | [nu-plugin-dotnet-win-x64.zip](https://github.com/${{ github.repository }}/releases/download/${{ steps.tag.outputs.tag }}/nu-plugin-dotnet-win-x64.zip) | [Checksum](https://github.com/${{ github.repository }}/releases/download/${{ steps.tag.outputs.tag }}/nu-plugin-dotnet-win-x64.zip.sha256) |
+          | Linux x64 | [nu-plugin-dotnet-linux-x64.tar.gz](https://github.com/${{ github.repository }}/releases/download/${{ steps.tag.outputs.tag }}/nu-plugin-dotnet-linux-x64.tar.gz) | [Checksum](https://github.com/${{ github.repository }}/releases/download/${{ steps.tag.outputs.tag }}/nu-plugin-dotnet-linux-x64.tar.gz.sha256) |
+          | macOS x64 | [nu-plugin-dotnet-osx-x64.tar.gz](https://github.com/${{ github.repository }}/releases/download/${{ steps.tag.outputs.tag }}/nu-plugin-dotnet-osx-x64.tar.gz) | [Checksum](https://github.com/${{ github.repository }}/releases/download/${{ steps.tag.outputs.tag }}/nu-plugin-dotnet-osx-x64.tar.gz.sha256) |
+          
+          ## 🔧 Installation
+          
+          ### Windows
+          ```powershell
+          # Download and extract
+          Invoke-WebRequest -Uri "https://github.com/${{ github.repository }}/releases/download/${{ steps.tag.outputs.tag }}/nu-plugin-dotnet-win-x64.zip" -OutFile "nu-plugin-dotnet.zip"
+          Expand-Archive -Path "nu-plugin-dotnet.zip" -DestinationPath "."
+          
+          # Register with nushell
+          plugin add ./nu_plugin_dotnet.exe
+          ```
+          
+          ### Linux/macOS
+          ```bash
+          # Download and extract (replace with your platform)
+          curl -LO "https://github.com/${{ github.repository }}/releases/download/${{ steps.tag.outputs.tag }}/nu-plugin-dotnet-linux-x64.tar.gz"
+          tar -xzf nu-plugin-dotnet-linux-x64.tar.gz
+          
+          # Make executable and register
+          chmod +x nu_plugin_dotnet
+          plugin add ./nu_plugin_dotnet
+          ```
+          
+          ## ✅ Verify Installation
+          ```nushell
+          help commands | where name =~ "dn"
+          ```
+          
+          ## 🧪 Quick Test
+          ```nushell
+          "System.Math" | dn get "PI"              # 3.141592653589793
+          "System.Math" | dn call "Max" 10 20      # 20
+          "Hello World" | dn get "Length"          # 11
+          ```
+          
+          ---
+          
+          **Built with:** .NET 8.0 | **Nushell:** 0.97+ | **Commit:** ${{ github.sha }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
