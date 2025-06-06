@@ -1,0 +1,155 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., v1.0.0)'
+        required: true
+        default: 'v1.0.0'
+
+jobs:
+  build:
+    name: Build for ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            runtime: win-x64
+            artifact: nu_plugin_dotnet.exe
+          - os: windows-latest
+            runtime: win-arm64
+            artifact: nu_plugin_dotnet.exe
+          - os: ubuntu-latest
+            runtime: linux-x64
+            artifact: nu_plugin_dotnet
+          - os: ubuntu-latest
+            runtime: linux-arm64
+            artifact: nu_plugin_dotnet
+          - os: macos-latest
+            runtime: osx-x64
+            artifact: nu_plugin_dotnet
+          - os: macos-latest
+            runtime: osx-arm64
+            artifact: nu_plugin_dotnet
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+    
+    - name: Restore dependencies
+      run: dotnet restore
+    
+    - name: Build
+      run: |
+        dotnet publish -c Release -r ${{ matrix.runtime }} --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=true -o ./publish/${{ matrix.runtime }}
+    
+    - name: Create archive (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        cd publish/${{ matrix.runtime }}
+        7z a ../../nu-plugin-dotnet-${{ matrix.runtime }}.zip ${{ matrix.artifact }}
+    
+    - name: Create archive (Unix)
+      if: matrix.os != 'windows-latest'
+      run: |
+        cd publish/${{ matrix.runtime }}
+        tar -czf ../../nu-plugin-dotnet-${{ matrix.runtime }}.tar.gz ${{ matrix.artifact }}
+    
+    - name: Generate checksums (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        Get-FileHash nu-plugin-dotnet-${{ matrix.runtime }}.zip -Algorithm SHA256 | Select-Object Hash | Out-File -FilePath nu-plugin-dotnet-${{ matrix.runtime }}.zip.sha256 -Encoding ASCII -NoNewline
+    
+    - name: Generate checksums (Unix)
+      if: matrix.os != 'windows-latest'
+      run: |
+        sha256sum nu-plugin-dotnet-${{ matrix.runtime }}.tar.gz > nu-plugin-dotnet-${{ matrix.runtime }}.tar.gz.sha256
+    
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: nu-plugin-dotnet-${{ matrix.runtime }}
+        path: |
+          nu-plugin-dotnet-${{ matrix.runtime }}.*
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+    
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ github.event.inputs.version || github.ref_name }}
+        name: Release ${{ github.event.inputs.version || github.ref_name }}
+        draft: false
+        prerelease: false
+        generate_release_notes: true
+        files: |
+          **/nu-plugin-dotnet-*.*
+        body: |
+          ## Nu Plugin DotNet ${{ github.event.inputs.version || github.ref_name }}
+          
+          ### 📦 Installation
+          
+          Choose the appropriate binary for your platform:
+          
+          #### Windows
+          ```powershell
+          # Download and extract
+          Invoke-WebRequest -Uri "https://github.com/${{ github.repository }}/releases/download/${{ github.event.inputs.version || github.ref_name }}/nu-plugin-dotnet-win-x64.zip" -OutFile "nu-plugin-dotnet.zip"
+          Expand-Archive -Path "nu-plugin-dotnet.zip" -DestinationPath "."
+          
+          # Register with nushell
+          plugin add ./nu_plugin_dotnet.exe
+          ```
+          
+          #### macOS
+          ```bash
+          # Download and extract
+          curl -LO "https://github.com/${{ github.repository }}/releases/download/${{ github.event.inputs.version || github.ref_name }}/nu-plugin-dotnet-osx-x64.tar.gz"
+          tar -xzf nu-plugin-dotnet-osx-x64.tar.gz
+          
+          # Make executable and register
+          chmod +x nu_plugin_dotnet
+          plugin add ./nu_plugin_dotnet
+          ```
+          
+          #### Linux
+          ```bash
+          # Download and extract
+          curl -LO "https://github.com/${{ github.repository }}/releases/download/${{ github.event.inputs.version || github.ref_name }}/nu-plugin-dotnet-linux-x64.tar.gz"
+          tar -xzf nu-plugin-dotnet-linux-x64.tar.gz
+          
+          # Make executable and register
+          chmod +x nu_plugin_dotnet
+          plugin add ./nu_plugin_dotnet
+          ```
+          
+          ### ✅ Verify Installation
+          ```nushell
+          help commands | where name =~ "dn"
+          ```
+          
+          ### 🧪 Quick Test
+          ```nushell
+          let $max = "System.Math" | dn call "Max" 10 20
+          let $pi = "System.Math" | dn get "PI"
+          ```
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 

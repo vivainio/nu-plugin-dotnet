@@ -425,3 +425,4 @@ C:\r\nu-plugin-dotnet\bin\Release-new\mscordaccore_amd64_amd64_8.0.624.26715.dll
 C:\r\nu-plugin-dotnet\bin\Release-new\mscordbi.dll
 C:\r\nu-plugin-dotnet\bin\Release-new\mscorrc.dll
 C:\r\nu-plugin-dotnet\bin\Release-new\msquic.dll
+C:\r\nu-plugin-dotnet\obj\Release\net8.0\win-x64\nu-plugin-dotnet.sourcelink.json

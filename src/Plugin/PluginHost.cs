@@ -9,55 +9,86 @@ namespace NuPluginDotNet.Plugin;
 public class PluginHost
 {
     private readonly ILogger<PluginHost> _logger;
-    private readonly CommandRegistry _commandRegistry;
-    private readonly ObjectManager _objectManager;
-    private readonly AssemblyManager _assemblyManager;
-    private readonly ValueConverter _valueConverter;
+    private readonly CommandRegistry? _commandRegistry;
+    private readonly ObjectManager? _objectManager;
+    private readonly AssemblyManager? _assemblyManager;
+    private readonly ValueConverter? _valueConverter;
+    private readonly bool _initializationSucceeded = false;
 
     public PluginHost(ILogger<PluginHost> logger)
     {
         _logger = logger;
-        _objectManager = new ObjectManager();
-        _assemblyManager = new AssemblyManager();
-        _valueConverter = new ValueConverter(_objectManager);
-        _commandRegistry = new CommandRegistry(_objectManager, _assemblyManager, _valueConverter, logger);
+        
+        try
+        {
+            _objectManager = new ObjectManager();
+            _assemblyManager = new AssemblyManager();
+            _valueConverter = new ValueConverter(_objectManager);
+            _commandRegistry = new CommandRegistry(_objectManager, _assemblyManager, _valueConverter, logger);
+            _initializationSucceeded = true;
+        }
+        catch (Exception ex)
+        {
+            // Initialize with null to handle signature requests even if initialization fails
+            _initializationSucceeded = false;
+        }
     }
 
     public async Task RunAsync()
     {
-        _logger.LogInformation("Nu plugin dotnet started");
-
-        while (true)
+        try
         {
-            var line = await Console.In.ReadLineAsync();
-            if (line == null)
-                break;
+            // Set up console for plugin communication
+            Console.InputEncoding = System.Text.Encoding.UTF8;
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
 
-            try
+            while (true)
             {
-                var request = JsonSerializer.Deserialize<PluginRequest>(line);
-                if (request == null)
-                    continue;
-
-                var response = request.Type switch
+                try
                 {
-                    "Signature" => HandleSignature(),
-                    "Run" => await HandleRun(request),
-                    _ => CreateErrorResponse($"Unknown request type: {request.Type}")
-                };
+                    var line = Console.ReadLine();
+                    if (line == null)
+                        break;
 
-                var responseJson = JsonSerializer.Serialize(response);
-                await Console.Out.WriteLineAsync(responseJson);
-                await Console.Out.FlushAsync();
+                    if (string.IsNullOrWhiteSpace(line))
+                        continue;
+
+                    var request = JsonSerializer.Deserialize<PluginRequest>(line);
+                    if (request == null)
+                        continue;
+
+                    var response = request.Type switch
+                    {
+                        "Signature" => HandleSignature(),
+                        "Run" => await HandleRun(request),
+                        _ => CreateErrorResponse($"Unknown request type: {request.Type}")
+                    };
+
+                    var responseJson = JsonSerializer.Serialize(response);
+                    Console.WriteLine(responseJson);
+                    Console.Out.Flush();
+                }
+                catch (JsonException ex)
+                {
+                    var errorResponse = CreateErrorResponse($"JSON parsing error: {ex.Message}");
+                    var errorJson = JsonSerializer.Serialize(errorResponse);
+                    Console.WriteLine(errorJson);
+                    Console.Out.Flush();
+                }
+                catch (Exception ex)
+                {
+                    var errorResponse = CreateErrorResponse($"Internal error: {ex.Message}");
+                    var errorJson = JsonSerializer.Serialize(errorResponse);
+                    Console.WriteLine(errorJson);
+                    Console.Out.Flush();
+                }
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error processing request: {Line}", line);
-                var errorResponse = CreateErrorResponse($"Internal error: {ex.Message}");
-                var errorJson = JsonSerializer.Serialize(errorResponse);
-                await Console.Out.WriteLineAsync(errorJson);
-                await Console.Out.FlushAsync();
-            }
+        }
+        catch (Exception ex)
+        {
+            // Log to stderr to avoid interfering with plugin protocol
+            await Console.Error.WriteLineAsync($"Fatal plugin error: {ex.Message}");
+            Environment.Exit(1);
         }
     }
 
@@ -84,6 +115,11 @@ public class PluginHost
     {
         try
         {
+            if (!_initializationSucceeded || _commandRegistry == null)
+            {
+                return CreateErrorResponse("Plugin initialization failed. Please check your .NET installation.");
+            }
+
             var call = request.Call;
             if (call == null)
                 return CreateErrorResponse("Missing call information");
@@ -98,7 +134,6 @@ public class PluginHost
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error executing command");
             return CreateErrorResponse(ex.Message);
         }
     }

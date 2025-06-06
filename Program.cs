@@ -9,8 +9,9 @@ public class Program
     {
         try
         {
+            // Create a null logger to avoid console conflicts with plugin protocol
             var loggerFactory = LoggerFactory.Create(builder => 
-                builder.AddConsole().SetMinimumLevel(LogLevel.Warning));
+                builder.SetMinimumLevel(LogLevel.None));
             var logger = loggerFactory.CreateLogger<PluginHost>();
             
             var pluginHost = new PluginHost(logger);
