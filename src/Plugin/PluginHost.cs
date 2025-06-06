@@ -68,14 +68,14 @@ public class PluginHost
             Type = "Signature",
             Value = new List<CommandSignature>
             {
-                new() { Name = "dotnet new", Description = "Create a new .NET object", Category = "experimental" },
-                new() { Name = "dotnet call", Description = "Call a method on a .NET object", Category = "experimental" },
-                new() { Name = "dotnet get", Description = "Get a property or field from a .NET object", Category = "experimental" },
-                new() { Name = "dotnet set", Description = "Set a property or field on a .NET object", Category = "experimental" },
-                new() { Name = "dotnet load-assembly", Description = "Load a .NET assembly", Category = "experimental" },
-                new() { Name = "dotnet assemblies", Description = "List loaded assemblies", Category = "experimental" },
-                new() { Name = "dotnet types", Description = "List types in an assembly", Category = "experimental" },
-                new() { Name = "dotnet members", Description = "List members of a type", Category = "experimental" }
+                new() { Name = "dn new", Description = "Create a new .NET object", Category = "experimental" },
+                new() { Name = "dn call", Description = "Call a method on a .NET object", Category = "experimental" },
+                new() { Name = "dn get", Description = "Get a property or field from a .NET object", Category = "experimental" },
+                new() { Name = "dn set", Description = "Set a property or field on a .NET object", Category = "experimental" },
+                new() { Name = "dn load-assembly", Description = "Load a .NET assembly", Category = "experimental" },
+                new() { Name = "dn assemblies", Description = "List loaded assemblies", Category = "experimental" },
+                new() { Name = "dn types", Description = "List types in an assembly", Category = "experimental" },
+                new() { Name = "dn members", Description = "List members of a type", Category = "experimental" }
             }
         };
     }

@@ -1,320 +1,261 @@
 # Nu Plugin DotNet
 
-A nushell plugin that enables seamless integration with .NET classes and libraries, allowing you to create objects, call methods, and access properties directly from nushell.
+A powerful nushell plugin that brings the full .NET ecosystem to your nushell environment. Create objects, call methods, access properties, and explore the vast .NET type system directly from nushell.
 
 ## Features
 
-- 🔧 **Create .NET Objects**: Instantiate any .NET class with constructor parameters
-- 🚀 **Method Invocation**: Call both instance and static methods with automatic type conversion
-- 📊 **Property Access**: Get and set properties and fields on .NET objects
-- 🔍 **Type Discovery**: Explore assemblies, types, and their members
-- ⚡ **Async Support**: Automatic handling of Task and ValueTask return values
-- 🧠 **Smart Type Conversion**: Bidirectional conversion between nushell and .NET types
-- 📦 **Assembly Management**: Load assemblies from file paths
+- **Object Creation**: Instantiate any .NET class with constructor arguments
+- **Method Invocation**: Call instance and static methods with full type conversion
+- **Property Access**: Get and set properties and fields on .NET objects
+- **Assembly Loading**: Load and explore .NET assemblies at runtime
+- **Type System**: Browse types, methods, properties, and other members
+- **Automatic Type Conversion**: Seamless conversion between nushell and .NET types
+- **Object Lifetime Management**: Automatic cleanup of .NET objects
 
 ## Installation
 
-### Prerequisites
-
-- .NET 8.0 or later
-- Nushell 0.80 or later
-
-### Build from Source
-
+1. Build the plugin:
 ```bash
-git clone https://github.com/yourusername/nu-plugin-dotnet
-cd nu-plugin-dotnet
 dotnet build -c Release
 ```
 
-### Register with Nushell
-
-```bash
-# Register the plugin
-register ./bin/Release/net8.0/nu_plugin_dotnet.exe
-
-# Or with full path
-register "C:\path\to\nu_plugin_dotnet.exe"
-```
-
-## Quick Start
-
+2. Register with nushell:
 ```nushell
-# Create a DateTime object
-let $now = dotnet new "System.DateTime" --args [2023, 12, 25, 14, 30, 0]
-
-# Call methods on the object
-let $tomorrow = $now | dotnet call "AddDays" 1
-$tomorrow | dotnet get "DayOfWeek"  # Output: Tuesday
-
-# Static method calls
-let $max = dotnet call "System.Math" "Max" 10 20  # Output: 20
-
-# Working with collections
-let $list = dotnet new "System.Collections.Generic.List[string]"
-$list | dotnet call "Add" "Hello"
-$list | dotnet call "Add" "World"
-$list | dotnet get "Count"  # Output: 2
+plugin add ./bin/Release/net8.0/win-x64/nu_plugin_dotnet.exe
 ```
 
 ## Commands
 
-### `dotnet new`
+### `dn new` - Create .NET Objects
 
-Create instances of .NET classes.
+Create instances of .NET classes with constructor parameters.
 
-**Syntax:**
 ```nushell
-dotnet new <type-name> [--args <constructor-args>] [--assembly <assembly-path>]
+# Create a DateTime
+let $now = dn new "System.DateTime" --args [2023, 12, 25]
+
+# Create a List<string>
+let $list = dn new "System.Collections.Generic.List[string]"
+
+# Create a Dictionary<string, int>
+let $dict = dn new "System.Collections.Generic.Dictionary[string, int]"
 ```
 
-**Examples:**
+### `dn call` - Call Methods
+
+Call instance methods on objects or static methods on types.
+
 ```nushell
-# Simple object creation
-dotnet new "System.Guid"
-dotnet new "System.DateTime" --args [2023, 12, 25]
+# Call instance method
+let $tomorrow = $now | dn call "AddDays" 1
 
-# Create with named constructor
-dotnet new "System.Text.StringBuilder" --args ["Hello World"]
+# Call static method
+let $max = "System.Math" | dn call "Max" 10 20
 
-# Load assembly and create object
-dotnet new "MyLibrary.CustomClass" --assembly "path/to/library.dll"
+# Call method with multiple parameters
+$list | dn call "AddRange" ["Hello", "World", "!"]
 ```
 
-### `dotnet call`
+### `dn get` - Get Properties/Fields
 
-Invoke methods on .NET objects or types.
+Access properties and fields from .NET objects or types.
 
-**Syntax:**
 ```nushell
-<object> | dotnet call <method-name> [args...]
-<type-name> | dotnet call <method-name> [args...]  # Static methods
+# Get instance property
+let $year = $now | dn get "Year"
+
+# Get static property
+let $pi = "System.Math" | dn get "PI"
+
+# Get collection count
+let $count = $list | dn get "Count"
 ```
 
-**Examples:**
+### `dn set` - Set Properties/Fields
+
+Modify properties and fields on .NET objects.
+
 ```nushell
-# Instance method
-$datetime | dotnet call "AddDays" 7
-$stringBuilder | dotnet call "Append" " - Added text"
+# Set instance property (on mutable objects)
+$obj | dn set "Name" "New Value"
 
-# Static method
-"System.IO.File" | dotnet call "ReadAllText" "config.json"
-"System.Math" | dotnet call "Pow" 2 3  # 2^3 = 8
-
-# Async methods (automatically awaited)
-$httpClient | dotnet call "GetStringAsync" "https://api.github.com"
+# Set static field
+"MyClass" | dn set "StaticField" 42
 ```
 
-### `dotnet get`
+### `dn load-assembly` - Load Assemblies
 
-Access properties and fields from .NET objects.
+Load .NET assemblies from files or GAC.
 
-**Syntax:**
 ```nushell
-<object> | dotnet get <member-name> [index-args...]
-<type-name> | dotnet get <member-name>  # Static members
+# Load assembly from file
+dn load-assembly "MyLibrary.dll"
+
+# Load from GAC
+dn load-assembly "System.Text.Json"
 ```
 
-**Examples:**
-```nushell
-# Get properties
-$datetime | dotnet get "Year"
-$fileInfo | dotnet get "Length"
+### `dn assemblies` - List Assemblies
 
-# Get static properties
-"System.DateTime" | dotnet get "Now"
-"System.Environment" | dotnet get "MachineName"
+List all currently loaded assemblies.
 
-# Indexed properties
-$list | dotnet get "Item" 0  # Get first element
-$dict | dotnet get "Item" "key"
-```
-
-### `dotnet set`
-
-Set properties and fields on .NET objects.
-
-**Syntax:**
-```nushell
-<object> | dotnet set <member-name> <value>
-<type-name> | dotnet set <member-name> <value>  # Static members
-```
-
-**Examples:**
-```nushell
-# Set properties
-$stringBuilder | dotnet set "Capacity" 1000
-$fileInfo | dotnet set "Attributes" "ReadOnly"
-
-# Set static properties
-"System.Environment" | dotnet set "CurrentDirectory" "/new/path"
-```
-
-### `dotnet load-assembly`
-
-Load .NET assemblies from file paths.
-
-**Syntax:**
-```nushell
-dotnet load-assembly <assembly-path>
-```
-
-**Examples:**
-```nushell
-# Load a custom library
-dotnet load-assembly "MyLibrary.dll"
-dotnet load-assembly "C:\libs\ThirdParty.dll"
-
-# Load and get info
-let $info = dotnet load-assembly "SomeLibrary.dll"
-$info | select name version typeCount
-```
-
-### `dotnet assemblies`
-
-List all loaded assemblies.
-
-**Examples:**
 ```nushell
 # List all assemblies
-dotnet assemblies
+dn assemblies
 
-# Filter by name
-dotnet assemblies | where name =~ "System"
-
-# Show only custom assemblies
-dotnet assemblies | where isGAC == false
+# Filter assemblies
+dn assemblies | where name =~ "System"
 ```
 
-### `dotnet types`
+### `dn types` - List Types
 
-List types in an assembly.
+List types within an assembly.
 
-**Syntax:**
 ```nushell
-dotnet types <assembly-name>
+# List types in core library
+dn types "System.Private.CoreLib"
+
+# List types in specific assembly
+dn types "MyLibrary"
 ```
 
-**Examples:**
+### `dn members` - List Type Members
+
+Explore the members (methods, properties, fields) of a type.
+
 ```nushell
-# List types in System.Core
-dotnet types "System.Core"
+# List String members
+dn members "System.String"
 
-# Filter to classes only
-dotnet types "MyLibrary" | where isClass == true
-
-# Find generic types
-dotnet types "System.Core" | where isGeneric == true
-```
-
-### `dotnet members`
-
-List members (methods, properties, fields) of a type.
-
-**Syntax:**
-```nushell
-dotnet members <type-name> [--type <member-type>] [--static] [--instance]
-```
-
-**Examples:**
-```nushell
-# List all members
-dotnet members "System.String"
-
-# Only methods
-dotnet members "System.String" --type methods
-
-# Only static members
-dotnet members "System.Math" --static true --instance false
-
-# Only properties
-dotnet members "System.IO.FileInfo" --type properties
+# List DateTime members
+dn members "System.DateTime"
 ```
 
 ## Type Conversion
 
 The plugin automatically converts between nushell and .NET types:
 
-| Nushell Type | .NET Type | Notes |
-|--------------|-----------|-------|
-| `int` | `long`, `int`, `short`, etc. | Automatic numeric conversion |
-| `float` | `double`, `float`, `decimal` | Precision preserved |
-| `string` | `string` | Direct mapping |
-| `bool` | `bool` | Direct mapping |
-| `list` | `Array`, `List<T>`, `IEnumerable<T>` | Element type conversion |
-| `record` | Custom objects, `Dictionary<K,V>` | Property mapping |
-| `date` | `DateTime` | Direct mapping |
-| `duration` | `TimeSpan` | Direct mapping |
+| Nushell Type | .NET Type |
+|--------------|-----------|
+| `int` | `int`, `long`, `double` |
+| `float` | `float`, `double`, `decimal` |
+| `string` | `string` |
+| `bool` | `bool` |
+| `list` | `Array`, `List<T>`, `IEnumerable<T>` |
+| `record` | `Dictionary<string, object>` |
+| Complex objects | Managed object references |
 
-## Real-World Examples
+## Examples
 
-### Working with Files
-
-```nushell
-# Read a JSON file using .NET
-let $json = "System.IO.File" | dotnet call "ReadAllText" "config.json"
-let $doc = dotnet new "System.Text.Json.JsonDocument" --parse $json
-$doc | dotnet call "RootElement" | dotnet call "GetProperty" "database"
-```
-
-### HTTP Client Usage
+### Working with DateTime
 
 ```nushell
-# Make HTTP requests
-let $client = dotnet new "System.Net.Http.HttpClient"
-let $response = $client | dotnet call "GetStringAsync" "https://api.github.com/users/octocat"
-$response | from json | select login name public_repos
+# Create a specific date
+let $christmas = dn new "System.DateTime" --args [2023, 12, 25]
 
-# Don't forget to dispose
-$client | dotnet call "Dispose"
+# Get components
+let $year = $christmas | dn get "Year"
+let $month = $christmas | dn get "Month"
+let $dayOfWeek = $christmas | dn get "DayOfWeek"
+
+# Add time
+let $newYear = $christmas | dn call "AddDays" 7
+let $nextMonth = $christmas | dn call "AddMonths" 1
+
+# Format date
+let $formatted = $christmas | dn call "ToString" "yyyy-MM-dd"
 ```
 
 ### Working with Collections
 
 ```nushell
-# Create and manipulate a list
-let $list = dotnet new "System.Collections.Generic.List[int]"
-[1, 2, 3, 4, 5] | each { |x| $list | dotnet call "Add" $x }
+# Create and populate a list
+let $numbers = dn new "System.Collections.Generic.List[int]"
+$numbers | dn call "Add" 1
+$numbers | dn call "Add" 2
+$numbers | dn call "Add" 3
 
-# Use LINQ-like operations
-let $evens = $list | dotnet call "Where" { |x| ($x % 2) == 0 }
-let $doubled = $evens | dotnet call "Select" { |x| $x * 2 }
-$doubled | dotnet call "ToArray"
+# Work with the list
+let $count = $numbers | dn get "Count"
+let $first = $numbers | dn call "get_Item" 0
+let $contains = $numbers | dn call "Contains" 2
+
+# Convert to array
+let $array = $numbers | dn call "ToArray"
 ```
 
-### Regular Expressions
+### Math Operations
 
 ```nushell
-# Create and use regex
-let $regex = dotnet new "System.Text.RegularExpressions.Regex" --args ["[a-z]+@[a-z]+\\.[a-z]+"]
-let $text = "Contact us at john@example.com or jane@test.org"
-let $matches = $regex | dotnet call "Matches" $text
+# Static math methods
+let $max = "System.Math" | dn call "Max" 10 20
+let $min = "System.Math" | dn call "Min" 5.5 3.2
+let $sqrt = "System.Math" | dn call "Sqrt" 16
+let $pow = "System.Math" | dn call "Pow" 2 8
 
-# Extract email addresses
-$matches | dotnet call "Cast" | each { |match| $match | dotnet get "Value" }
+# Math constants
+let $pi = "System.Math" | dn get "PI"
+let $e = "System.Math" | dn get "E"
+```
+
+### File Operations
+
+```nushell
+# Check if file exists
+let $exists = "System.IO.File" | dn call "Exists" "myfile.txt"
+
+# Read file content
+let $content = "System.IO.File" | dn call "ReadAllText" "myfile.txt"
+
+# Get file info
+let $info = dn new "System.IO.FileInfo" --args ["myfile.txt"]
+let $size = $info | dn get "Length"
+let $created = $info | dn get "CreationTime"
+```
+
+### Working with JSON
+
+```nushell
+# Parse JSON
+let $json = '{"name": "John", "age": 30}'
+let $doc = "System.Text.Json.JsonDocument" | dn call "Parse" $json
+let $root = $doc | dn get "RootElement"
+
+# Access JSON properties
+let $name = $root | dn call "GetProperty" "name" | dn call "GetString"
+let $age = $root | dn call "GetProperty" "age" | dn call "GetInt32"
 ```
 
 ## Error Handling
 
 The plugin provides detailed error messages for common issues:
 
-- **Type not found**: Make sure the assembly is loaded
-- **Method not found**: Check method name and parameter count
-- **Type conversion errors**: Verify argument types match method signatures
-- **Assembly loading errors**: Check file path and permissions
+- **Type not found**: Lists similar type names
+- **Method not found**: Shows available methods with signatures
+- **Constructor mismatch**: Lists available constructors
+- **Type conversion errors**: Explains expected vs actual types
 
-## Performance Considerations
+## Object Lifetime
 
-- **Object Lifetime**: Objects are managed with weak references and automatic cleanup
-- **Assembly Loading**: Assemblies are cached after first load
-- **Type Resolution**: Types are cached for better performance
-- **Async Operations**: Properly awaited to avoid blocking
+- Objects are automatically managed with weak references
+- Garbage collection cleans up unused objects
+- Large objects are handled efficiently
+- No manual cleanup required
 
-## Security Notes
+## Requirements
 
-- The plugin can load and execute code from any .NET assembly
-- Only load assemblies from trusted sources
-- Consider running in isolated environments for untrusted code
+- .NET 8.0 or later
+- Nushell 0.80+
+- Windows, macOS, or Linux
+
+## Building from Source
+
+```bash
+git clone <repository-url>
+cd nu-plugin-dotnet
+dotnet restore
+dotnet build -c Release
+```
 
 ## Contributing
 
@@ -322,17 +263,4 @@ Contributions are welcome! Please feel free to submit issues and pull requests.
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Roadmap
-
-- [ ] NuGet package loading support
-- [ ] Generic type construction syntax
-- [ ] Event subscription and handling
-- [ ] Performance optimizations
-- [ ] Visual Studio debugger integration
-- [ ] Code generation for common libraries
-
----
-
-*Bring the power of the entire .NET ecosystem to your nushell scripts!* 
+This project is licensed under the MIT License. 

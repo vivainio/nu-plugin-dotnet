@@ -7,7 +7,7 @@ namespace NuPluginDotNet.Commands;
 
 public class CommandRegistry
 {
-    private readonly Dictionary<string, BaseCommand> _commands = new();
+    private readonly Dictionary<string, BaseCommand> _commands;
     private readonly ObjectManager _objectManager;
     private readonly AssemblyManager _assemblyManager;
     private readonly ValueConverter _valueConverter;
@@ -24,19 +24,17 @@ public class CommandRegistry
         _valueConverter = valueConverter;
         _logger = logger;
 
-        RegisterCommands();
-    }
-
-    private void RegisterCommands()
-    {
-        _commands["dotnet new"] = new DotNetNewCommand(_objectManager, _assemblyManager, _valueConverter, _logger);
-        _commands["dotnet call"] = new DotNetCallCommand(_objectManager, _assemblyManager, _valueConverter, _logger);
-        _commands["dotnet get"] = new DotNetGetCommand(_objectManager, _assemblyManager, _valueConverter, _logger);
-        _commands["dotnet set"] = new DotNetSetCommand(_objectManager, _assemblyManager, _valueConverter, _logger);
-        _commands["dotnet load-assembly"] = new DotNetLoadAssemblyCommand(_objectManager, _assemblyManager, _valueConverter, _logger);
-        _commands["dotnet assemblies"] = new DotNetAssembliesCommand(_objectManager, _assemblyManager, _valueConverter, _logger);
-        _commands["dotnet types"] = new DotNetTypesCommand(_objectManager, _assemblyManager, _valueConverter, _logger);
-        _commands["dotnet members"] = new DotNetMembersCommand(_objectManager, _assemblyManager, _valueConverter, _logger);
+        _commands = new Dictionary<string, BaseCommand>
+        {
+            ["dn new"] = new DotNetNewCommand(_objectManager, _assemblyManager, _valueConverter, _logger),
+            ["dn call"] = new DotNetCallCommand(_objectManager, _assemblyManager, _valueConverter, _logger),
+            ["dn get"] = new DotNetGetCommand(_objectManager, _assemblyManager, _valueConverter, _logger),
+            ["dn set"] = new DotNetSetCommand(_objectManager, _assemblyManager, _valueConverter, _logger),
+            ["dn load-assembly"] = new DotNetLoadAssemblyCommand(_objectManager, _assemblyManager, _valueConverter, _logger),
+            ["dn assemblies"] = new DotNetAssembliesCommand(_objectManager, _assemblyManager, _valueConverter, _logger),
+            ["dn types"] = new DotNetTypesCommand(_objectManager, _assemblyManager, _valueConverter, _logger),
+            ["dn members"] = new DotNetMembersCommand(_objectManager, _assemblyManager, _valueConverter, _logger)
+        };
     }
 
     public async Task<PluginValue> ExecuteAsync(string commandName, PluginCall call)

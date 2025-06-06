@@ -1,0 +1,1 @@
+{"Type":"Run","Call":{"Head":{"Name":"dn call"},"Positional":[{"type":"String","val":"Max"},{"type":"Int","val":10},{"type":"Int","val":20}],"Named":{},"Input":{"type":"String","val":"System.Math"}}} 
