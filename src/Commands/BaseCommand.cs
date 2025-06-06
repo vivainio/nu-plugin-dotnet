@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Logging;
 using NuPluginDotNet.DotNet;
 using NuPluginDotNet.Types;
 using NuPluginDotNet.Plugin;
@@ -10,26 +9,21 @@ public abstract class BaseCommand
     protected readonly ObjectManager ObjectManager;
     protected readonly AssemblyManager AssemblyManager;
     protected readonly ValueConverter ValueConverter;
-    protected readonly ILogger Logger;
 
     protected BaseCommand(
         ObjectManager objectManager,
         AssemblyManager assemblyManager,
-        ValueConverter valueConverter,
-        ILogger logger)
+        ValueConverter valueConverter)
     {
         ObjectManager = objectManager;
         AssemblyManager = assemblyManager;
         ValueConverter = valueConverter;
-        Logger = logger;
     }
 
     public abstract Task<PluginValue> ExecuteAsync(CommandArgs args);
 
     protected PluginValue CreateError(string message, Exception? exception = null)
     {
-        Logger.LogError(exception, "Command error: {Message}", message);
-        
         return new PluginValue
         {
             Type = PluginValueType.Error,

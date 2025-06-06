@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Logging;
+
 using NuPluginDotNet.DotNet;
 using NuPluginDotNet.Types;
 
@@ -9,8 +9,7 @@ public class DotNetAssembliesCommand : BaseCommand
     public DotNetAssembliesCommand(
         ObjectManager objectManager,
         AssemblyManager assemblyManager,
-        ValueConverter valueConverter,
-        ILogger logger) : base(objectManager, assemblyManager, valueConverter, logger)
+        ValueConverter valueConverter) : base(objectManager, assemblyManager, valueConverter)
     {
     }
 
@@ -44,7 +43,7 @@ public class DotNetAssembliesCommand : BaseCommand
                 assemblyList.Add(PluginValue.Record(assemblyRecord));
             }
 
-            Logger.LogInformation("Listed {Count} assemblies", assemblies.Length);
+            // Logger.LogInformation("Listed {Count} assemblies", assemblies.Length);
             
             return Task.FromResult(PluginValue.List(assemblyList));
         }

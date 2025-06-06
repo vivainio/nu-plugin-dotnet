@@ -1,5 +1,5 @@
 using System.Reflection;
-using Microsoft.Extensions.Logging;
+
 using NuPluginDotNet.DotNet;
 using NuPluginDotNet.Types;
 
@@ -10,8 +10,7 @@ public class DotNetGetCommand : BaseCommand
     public DotNetGetCommand(
         ObjectManager objectManager,
         AssemblyManager assemblyManager,
-        ValueConverter valueConverter,
-        ILogger logger) : base(objectManager, assemblyManager, valueConverter, logger)
+        ValueConverter valueConverter) : base(objectManager, assemblyManager, valueConverter)
     {
     }
 
@@ -119,7 +118,7 @@ public class DotNetGetCommand : BaseCommand
                 }
             }
 
-            Logger.LogInformation("Got member {MemberName} from {TypeName}", memberName, targetType.Name);
+            // Logger.LogInformation("Got member {MemberName} from {TypeName}", memberName, targetType.Name);
 
             // Convert result back to PluginValue
             if (result == null)

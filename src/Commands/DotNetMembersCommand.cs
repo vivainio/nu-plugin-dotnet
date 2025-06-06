@@ -1,5 +1,5 @@
 using System.Reflection;
-using Microsoft.Extensions.Logging;
+
 using NuPluginDotNet.DotNet;
 using NuPluginDotNet.Types;
 
@@ -10,8 +10,7 @@ public class DotNetMembersCommand : BaseCommand
     public DotNetMembersCommand(
         ObjectManager objectManager,
         AssemblyManager assemblyManager,
-        ValueConverter valueConverter,
-        ILogger logger) : base(objectManager, assemblyManager, valueConverter, logger)
+        ValueConverter valueConverter) : base(objectManager, assemblyManager, valueConverter)
     {
     }
 
@@ -121,7 +120,7 @@ public class DotNetMembersCommand : BaseCommand
                 }
             }
 
-            Logger.LogInformation("Listed {Count} members from type {TypeName}", memberList.Count, typeName);
+            // Logger.LogInformation("Listed {Count} members from type {TypeName}", memberList.Count, typeName);
             
             return Task.FromResult(PluginValue.List(memberList));
         }

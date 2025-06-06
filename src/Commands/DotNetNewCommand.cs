@@ -1,5 +1,4 @@
 using System.Reflection;
-using Microsoft.Extensions.Logging;
 using NuPluginDotNet.DotNet;
 using NuPluginDotNet.Types;
 
@@ -10,8 +9,7 @@ public class DotNetNewCommand : BaseCommand
     public DotNetNewCommand(
         ObjectManager objectManager,
         AssemblyManager assemblyManager,
-        ValueConverter valueConverter,
-        ILogger logger) : base(objectManager, assemblyManager, valueConverter, logger)
+        ValueConverter valueConverter) : base(objectManager, assemblyManager, valueConverter)
     {
     }
 
@@ -100,8 +98,6 @@ public class DotNetNewCommand : BaseCommand
             
             // Register the object for lifetime management
             var objectId = ObjectManager.RegisterObject(instance!);
-            
-            Logger.LogInformation("Created object {TypeName} with ID {ObjectId}", typeName, objectId);
             
             // Return custom object reference
             return PluginValue.Custom(objectId, type.FullName ?? type.Name);

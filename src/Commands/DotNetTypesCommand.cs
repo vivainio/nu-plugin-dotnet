@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Logging;
+
 using NuPluginDotNet.DotNet;
 using NuPluginDotNet.Types;
 
@@ -9,8 +9,7 @@ public class DotNetTypesCommand : BaseCommand
     public DotNetTypesCommand(
         ObjectManager objectManager,
         AssemblyManager assemblyManager,
-        ValueConverter valueConverter,
-        ILogger logger) : base(objectManager, assemblyManager, valueConverter, logger)
+        ValueConverter valueConverter) : base(objectManager, assemblyManager, valueConverter)
     {
     }
 
@@ -55,7 +54,7 @@ public class DotNetTypesCommand : BaseCommand
                 typeList.Add(PluginValue.Record(typeRecord));
             }
 
-            Logger.LogInformation("Listed {Count} types from assembly {AssemblyName}", types.Length, assemblyName);
+            // Logger.LogInformation("Listed {Count} types from assembly {AssemblyName}", types.Length, assemblyName);
             
             return Task.FromResult(PluginValue.List(typeList));
         }

@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Logging;
 using NuPluginDotNet.DotNet;
 using NuPluginDotNet.Plugin;
 using NuPluginDotNet.Types;
@@ -11,29 +10,26 @@ public class CommandRegistry
     private readonly ObjectManager _objectManager;
     private readonly AssemblyManager _assemblyManager;
     private readonly ValueConverter _valueConverter;
-    private readonly ILogger _logger;
 
     public CommandRegistry(
         ObjectManager objectManager, 
         AssemblyManager assemblyManager, 
-        ValueConverter valueConverter,
-        ILogger logger)
+        ValueConverter valueConverter)
     {
         _objectManager = objectManager;
         _assemblyManager = assemblyManager;
         _valueConverter = valueConverter;
-        _logger = logger;
 
         _commands = new Dictionary<string, BaseCommand>
         {
-            ["dn new"] = new DotNetNewCommand(_objectManager, _assemblyManager, _valueConverter, _logger),
-            ["dn call"] = new DotNetCallCommand(_objectManager, _assemblyManager, _valueConverter, _logger),
-            ["dn get"] = new DotNetGetCommand(_objectManager, _assemblyManager, _valueConverter, _logger),
-            ["dn set"] = new DotNetSetCommand(_objectManager, _assemblyManager, _valueConverter, _logger),
-            ["dn load-assembly"] = new DotNetLoadAssemblyCommand(_objectManager, _assemblyManager, _valueConverter, _logger),
-            ["dn assemblies"] = new DotNetAssembliesCommand(_objectManager, _assemblyManager, _valueConverter, _logger),
-            ["dn types"] = new DotNetTypesCommand(_objectManager, _assemblyManager, _valueConverter, _logger),
-            ["dn members"] = new DotNetMembersCommand(_objectManager, _assemblyManager, _valueConverter, _logger)
+            ["dn new"] = new DotNetNewCommand(_objectManager, _assemblyManager, _valueConverter),
+            ["dn call"] = new DotNetCallCommand(_objectManager, _assemblyManager, _valueConverter),
+            ["dn get"] = new DotNetGetCommand(_objectManager, _assemblyManager, _valueConverter),
+            ["dn set"] = new DotNetSetCommand(_objectManager, _assemblyManager, _valueConverter),
+            ["dn load-assembly"] = new DotNetLoadAssemblyCommand(_objectManager, _assemblyManager, _valueConverter),
+            ["dn assemblies"] = new DotNetAssembliesCommand(_objectManager, _assemblyManager, _valueConverter),
+            ["dn types"] = new DotNetTypesCommand(_objectManager, _assemblyManager, _valueConverter),
+            ["dn members"] = new DotNetMembersCommand(_objectManager, _assemblyManager, _valueConverter)
         };
     }
 

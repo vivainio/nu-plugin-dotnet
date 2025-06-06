@@ -1,5 +1,5 @@
 using System.Reflection;
-using Microsoft.Extensions.Logging;
+
 using NuPluginDotNet.DotNet;
 using NuPluginDotNet.Types;
 
@@ -10,8 +10,7 @@ public class DotNetCallCommand : BaseCommand
     public DotNetCallCommand(
         ObjectManager objectManager,
         AssemblyManager assemblyManager,
-        ValueConverter valueConverter,
-        ILogger logger) : base(objectManager, assemblyManager, valueConverter, logger)
+        ValueConverter valueConverter) : base(objectManager, assemblyManager, valueConverter)
     {
     }
 
@@ -117,7 +116,7 @@ public class DotNetCallCommand : BaseCommand
                 result = await UnwrapAsyncResult(result);
             }
 
-            Logger.LogInformation("Called method {MethodName} on {TypeName}", methodName, targetType.Name);
+            // Logger.LogInformation("Called method {MethodName} on {TypeName}", methodName, targetType.Name);
             
             // Convert result back to PluginValue
             if (result == null)

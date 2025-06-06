@@ -1,5 +1,4 @@
 using NuPluginDotNet.Plugin;
-using Microsoft.Extensions.Logging;
 
 namespace NuPluginDotNet;
 
@@ -9,12 +8,7 @@ public class Program
     {
         try
         {
-            // Create a null logger to avoid console conflicts with plugin protocol
-            var loggerFactory = LoggerFactory.Create(builder => 
-                builder.SetMinimumLevel(LogLevel.None));
-            var logger = loggerFactory.CreateLogger<PluginHost>();
-            
-            var pluginHost = new PluginHost(logger);
+            var pluginHost = new PluginHost();
             await pluginHost.RunAsync();
             return 0;
         }

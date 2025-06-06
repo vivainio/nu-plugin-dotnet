@@ -1,5 +1,5 @@
 using System.Reflection;
-using Microsoft.Extensions.Logging;
+
 using NuPluginDotNet.DotNet;
 using NuPluginDotNet.Types;
 
@@ -10,8 +10,7 @@ public class DotNetSetCommand : BaseCommand
     public DotNetSetCommand(
         ObjectManager objectManager,
         AssemblyManager assemblyManager,
-        ValueConverter valueConverter,
-        ILogger logger) : base(objectManager, assemblyManager, valueConverter, logger)
+        ValueConverter valueConverter) : base(objectManager, assemblyManager, valueConverter)
     {
     }
 
@@ -61,7 +60,7 @@ public class DotNetSetCommand : BaseCommand
                 var convertedValue = ValueConverter.ConvertToClr(value, property.PropertyType);
                 property.SetValue(target, convertedValue);
                 
-                Logger.LogInformation("Set property {PropertyName} on {TypeName}", memberName, targetType.Name);
+                // Logger.LogInformation("Set property {PropertyName} on {TypeName}", memberName, targetType.Name);
                 return Task.FromResult(PluginValue.Null()); // Success with no return value
             }
 
@@ -72,7 +71,7 @@ public class DotNetSetCommand : BaseCommand
                 var convertedValue = ValueConverter.ConvertToClr(value, field.FieldType);
                 field.SetValue(target, convertedValue);
                 
-                Logger.LogInformation("Set field {FieldName} on {TypeName}", memberName, targetType.Name);
+                // Logger.LogInformation("Set field {FieldName} on {TypeName}", memberName, targetType.Name);
                 return Task.FromResult(PluginValue.Null()); // Success with no return value
             }
 

@@ -1,5 +1,4 @@
 using System.Text.Json;
-using Microsoft.Extensions.Logging;
 using NuPluginDotNet.Commands;
 using NuPluginDotNet.DotNet;
 using NuPluginDotNet.Types;
@@ -8,92 +7,174 @@ namespace NuPluginDotNet.Plugin;
 
 public class PluginHost
 {
-    private readonly ILogger<PluginHost> _logger;
     private readonly CommandRegistry? _commandRegistry;
     private readonly ObjectManager? _objectManager;
     private readonly AssemblyManager? _assemblyManager;
     private readonly ValueConverter? _valueConverter;
     private readonly bool _initializationSucceeded = false;
+    private readonly string _logFile;
 
-    public PluginHost(ILogger<PluginHost> logger)
+    public PluginHost()
     {
-        _logger = logger;
+        _logFile = Path.Combine(Path.GetTempPath(), "nu-plugin-dotnet-debug.log");
         
         try
         {
+            WriteLog("Plugin starting...");
+            
+            WriteLog("Initializing ObjectManager...");
             _objectManager = new ObjectManager();
+            
+            WriteLog("Initializing AssemblyManager...");
             _assemblyManager = new AssemblyManager();
+            
+            WriteLog("Initializing ValueConverter...");
             _valueConverter = new ValueConverter(_objectManager);
-            _commandRegistry = new CommandRegistry(_objectManager, _assemblyManager, _valueConverter, logger);
+            
+            WriteLog("Initializing CommandRegistry...");
+            _commandRegistry = new CommandRegistry(_objectManager, _assemblyManager, _valueConverter);
+            
             _initializationSucceeded = true;
+            WriteLog("Initialization completed successfully");
         }
         catch (Exception ex)
         {
-            // Initialize with null to handle signature requests even if initialization fails
+            WriteLog($"Initialization failed: {ex.Message}");
             _initializationSucceeded = false;
+        }
+    }
+
+    private void WriteLog(string message)
+    {
+        try
+        {
+            File.AppendAllText(_logFile, $"[{DateTime.Now:HH:mm:ss.fff}] {message}\n");
+        }
+        catch
+        {
+            // Ignore logging errors to avoid causing more issues
         }
     }
 
     public async Task RunAsync()
     {
+        WriteLog("RunAsync started");
+        
         try
         {
-            // Set up console for plugin communication
+            WriteLog("Setting up console encoding");
             Console.InputEncoding = System.Text.Encoding.UTF8;
             Console.OutputEncoding = System.Text.Encoding.UTF8;
 
-            while (true)
+            WriteLog("Starting main communication loop with timeout");
+            
+            // Use a very short timeout to avoid hanging during registration
+            string? line = null;
+            
+            try
             {
-                try
+                WriteLog("Attempting to read input with 5-second timeout...");
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                
+                var readTask = Task.Run(async () =>
                 {
-                    var line = Console.ReadLine();
-                    if (line == null)
-                        break;
-
-                    if (string.IsNullOrWhiteSpace(line))
-                        continue;
-
-                    var request = JsonSerializer.Deserialize<PluginRequest>(line);
-                    if (request == null)
-                        continue;
-
-                    var response = request.Type switch
-                    {
-                        "Signature" => HandleSignature(),
-                        "Run" => await HandleRun(request),
-                        _ => CreateErrorResponse($"Unknown request type: {request.Type}")
-                    };
-
-                    var responseJson = JsonSerializer.Serialize(response);
-                    Console.WriteLine(responseJson);
-                    Console.Out.Flush();
-                }
-                catch (JsonException ex)
-                {
-                    var errorResponse = CreateErrorResponse($"JSON parsing error: {ex.Message}");
-                    var errorJson = JsonSerializer.Serialize(errorResponse);
-                    Console.WriteLine(errorJson);
-                    Console.Out.Flush();
-                }
-                catch (Exception ex)
-                {
-                    var errorResponse = CreateErrorResponse($"Internal error: {ex.Message}");
-                    var errorJson = JsonSerializer.Serialize(errorResponse);
-                    Console.WriteLine(errorJson);
-                    Console.Out.Flush();
-                }
+                    WriteLog("ReadTask: About to call Console.ReadLine()");
+                    var result = Console.ReadLine();
+                    WriteLog($"ReadTask: Console.ReadLine() returned: {result ?? "null"}");
+                    return result;
+                });
+                
+                line = await readTask.WaitAsync(cts.Token);
+                WriteLog($"Successfully read line: {line ?? "null"}");
             }
+            catch (TimeoutException)
+            {
+                WriteLog("Input read timed out after 5 seconds - exiting gracefully");
+                return;
+            }
+            catch (OperationCanceledException)
+            {
+                WriteLog("Input read was cancelled - exiting gracefully");
+                return;
+            }
+            catch (Exception ex)
+            {
+                WriteLog($"Error reading input: {ex.Message}");
+                return;
+            }
+            
+            if (line == null)
+            {
+                WriteLog("No input received, exiting");
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(line))
+            {
+                WriteLog("Empty input received, exiting");
+                return;
+            }
+
+            WriteLog("Processing input...");
+            
+            try
+            {
+                var request = JsonSerializer.Deserialize<PluginRequest>(line);
+                if (request == null)
+                {
+                    WriteLog("Failed to deserialize request");
+                    return;
+                }
+
+                WriteLog($"Request type: {request.Type}");
+
+                var response = request.Type switch
+                {
+                    "Signature" => HandleSignature(),
+                    "Run" => await HandleRun(request),
+                    _ => CreateErrorResponse($"Unknown request type: {request.Type}")
+                };
+
+                WriteLog($"Sending response...");
+                var responseJson = JsonSerializer.Serialize(response);
+                Console.WriteLine(responseJson);
+                Console.Out.Flush();
+                WriteLog("Response sent successfully");
+            }
+            catch (JsonException ex)
+            {
+                WriteLog($"JSON error: {ex.Message}");
+                var errorResponse = CreateErrorResponse($"JSON parsing error: {ex.Message}");
+                var errorJson = JsonSerializer.Serialize(errorResponse);
+                Console.WriteLine(errorJson);
+                Console.Out.Flush();
+            }
+            catch (Exception ex)
+            {
+                WriteLog($"Error: {ex.Message}");
+                var errorResponse = CreateErrorResponse($"Internal error: {ex.Message}");
+                var errorJson = JsonSerializer.Serialize(errorResponse);
+                Console.WriteLine(errorJson);
+                Console.Out.Flush();
+            }
+            
+            WriteLog("Main processing completed, exiting");
         }
         catch (Exception ex)
         {
-            // Log to stderr to avoid interfering with plugin protocol
+            WriteLog($"Fatal error: {ex.Message}");
             await Console.Error.WriteLineAsync($"Fatal plugin error: {ex.Message}");
             Environment.Exit(1);
+        }
+        finally
+        {
+            WriteLog("Plugin shutting down");
         }
     }
 
     private PluginResponse HandleSignature()
     {
+        WriteLog("Handling signature request");
         return new PluginResponse
         {
             Type = "Signature",
@@ -113,18 +194,26 @@ public class PluginHost
 
     private async Task<PluginResponse> HandleRun(PluginRequest request)
     {
+        WriteLog("Handling run request");
+        
         try
         {
             if (!_initializationSucceeded || _commandRegistry == null)
             {
+                WriteLog("Initialization not successful, returning error");
                 return CreateErrorResponse("Plugin initialization failed. Please check your .NET installation.");
             }
 
             var call = request.Call;
             if (call == null)
+            {
+                WriteLog("No call information in request");
                 return CreateErrorResponse("Missing call information");
+            }
 
+            WriteLog($"Executing command: {call.Head.Name}");
             var result = await _commandRegistry.ExecuteAsync(call.Head.Name, call);
+            WriteLog("Command executed successfully");
             
             return new PluginResponse
             {
@@ -134,6 +223,7 @@ public class PluginHost
         }
         catch (Exception ex)
         {
+            WriteLog($"Error executing command: {ex.Message}");
             return CreateErrorResponse(ex.Message);
         }
     }

@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Logging;
+
 using NuPluginDotNet.DotNet;
 using NuPluginDotNet.Types;
 
@@ -9,8 +9,7 @@ public class DotNetLoadAssemblyCommand : BaseCommand
     public DotNetLoadAssemblyCommand(
         ObjectManager objectManager,
         AssemblyManager assemblyManager,
-        ValueConverter valueConverter,
-        ILogger logger) : base(objectManager, assemblyManager, valueConverter, logger)
+        ValueConverter valueConverter) : base(objectManager, assemblyManager, valueConverter)
     {
     }
 
@@ -30,7 +29,7 @@ public class DotNetLoadAssemblyCommand : BaseCommand
             var assembly = AssemblyManager.LoadAssembly(assemblyPath);
             var assemblyInfo = AssemblyManager.GetAssemblyInfo(assembly);
             
-            Logger.LogInformation("Loaded assembly {AssemblyName} from {Path}", assemblyInfo.Name, assemblyPath);
+            // Logger.LogInformation("Loaded assembly {AssemblyName} from {Path}", assemblyInfo.Name, assemblyPath);
             
             // Return assembly information as a record
             var result = new Dictionary<string, PluginValue>
