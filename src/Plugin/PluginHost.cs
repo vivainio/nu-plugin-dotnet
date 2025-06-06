@@ -17,6 +17,7 @@ public class PluginHost
     private readonly bool _initializationSucceeded = false;
     private readonly string _logFile;
 
+
     public PluginHost()
     {
         _logFile = Path.Combine(Path.GetTempPath(), "nu-plugin-dotnet-debug.log");
@@ -65,24 +66,22 @@ public class PluginHost
         
         try
         {
-            WriteLog("Step 1: Sending encoding declaration first (required by nushell protocol)");
+            WriteLog("RunAsync started - encoding declaration already sent by Main");
             
-            // CRITICAL: First thing must be encoding declaration
-            // Format: [length_byte][encoding_string]
-            // For JSON: \x04json (4 bytes + "json")
-            var encoding = "json";
-            var encodingBytes = System.Text.Encoding.UTF8.GetBytes(encoding);
-            var lengthByte = (byte)encodingBytes.Length;
-            
-            // Write directly to stdout with immediate flush
-            using var stdout = Console.OpenStandardOutput();
-            await stdout.WriteAsync(new[] { lengthByte }, 0, 1);
-            await stdout.WriteAsync(encodingBytes, 0, encodingBytes.Length);
-            await stdout.FlushAsync();
-            
-            WriteLog($"Encoding declaration sent: length={lengthByte}, encoding={encoding}");
-            
-            WriteLog("Step 2: Now waiting for Hello message from nushell...");
+            // Send Hello message immediately after encoding (following Python plugin pattern)
+            var hello = new
+            {
+                Hello = new
+                {
+                    protocol = "nu-plugin",
+                    version = "0.104.0",
+                    features = new object[] { }
+                }
+            };
+            var helloJson = JsonSerializer.Serialize(hello);
+            Console.WriteLine(helloJson);
+            Console.Out.Flush();
+            WriteLog($"Hello message sent: {helloJson}");
             
             // Now use regular Console I/O for JSON protocol
             Console.InputEncoding = System.Text.Encoding.UTF8;
@@ -126,8 +125,8 @@ public class PluginHost
                     
                     if (root.TryGetProperty("Hello", out var helloElement))
                     {
-                        WriteLog("Received Hello message");
-                        response = HandleHello();
+                        WriteLog("Received Hello message - no response needed (already sent)");
+                        continue; // Don't send a response, we already sent Hello at startup
                     }
                     else if (root.TryGetProperty("Call", out var callElement))
                     {
@@ -143,7 +142,7 @@ public class PluginHost
                     if (response != null)
                     {
                         var responseJson = JsonSerializer.Serialize(response);
-                        Console.WriteLine(responseJson);
+                        Console.WriteLine(responseJson); // WriteLine already adds newline
                         Console.Out.Flush(); // Immediate flush is critical
                         WriteLog($"Response sent: {responseJson}");
                     }
@@ -376,17 +375,19 @@ public class PluginHost
                 }
             }
 
+            // Parse input if any
+            if (runElement.TryGetProperty("input", out var inputElement))
+            {
+                pluginCall.Input = ParseInputValue(inputElement);
+            }
+
             // Execute the command
             var result = await _commandRegistry.ExecuteAsync(commandName ?? "", pluginCall);
             WriteLog("Command executed successfully");
             
-            // Return proper CallResponse format that nushell can decode  
-            // For nushell 0.97+, Value is a tuple variant: ["Value", <value>]
+            // Return PipelineData format as expected by nushell
             var nushellValue = ConvertPluginValueToNushellValue(result);
-            return new object[] { 
-                "PipelineData", 
-                new object[] { "Value", nushellValue }
-            };
+            return new { PipelineData = new { Value = new object[] { nushellValue, null } } };
         }
         catch (Exception ex)
         {
@@ -397,7 +398,30 @@ public class PluginHost
     
     private PluginValue JsonElementToPluginValue(JsonElement element)
     {
-        // Simple conversion - you might want to expand this
+        // Handle nushell value format: {"String": {"val": "value", "span": {...}}}
+        if (element.ValueKind == JsonValueKind.Object)
+        {
+            foreach (var property in element.EnumerateObject())
+            {
+                var typeName = property.Name;
+                var valueObj = property.Value;
+                
+                if (valueObj.TryGetProperty("val", out var valElement))
+                {
+                    return typeName switch
+                    {
+                        "String" => ParseStringValue(valElement.GetString()),
+                        "Int" => new PluginValue { Type = PluginValueType.Int, Value = valElement.GetInt64() },
+                        "Float" => new PluginValue { Type = PluginValueType.Float, Value = valElement.GetDouble() },
+                        "Bool" => new PluginValue { Type = PluginValueType.Bool, Value = valElement.GetBoolean() },
+                        "Custom" => ParseCustomObject(valElement),
+                        _ => new PluginValue { Type = PluginValueType.String, Value = valElement.ToString() }
+                    };
+                }
+            }
+        }
+        
+        // Fallback to simple conversion
         return element.ValueKind switch
         {
             JsonValueKind.String => new PluginValue { Type = PluginValueType.String, Value = element.GetString() },
@@ -408,19 +432,89 @@ public class PluginHost
             _ => new PluginValue { Type = PluginValueType.String, Value = element.ToString() }
         };
     }
+
+    private PluginValue ParseStringValue(string? stringValue)
+    {
+        // Check if this is an encoded custom object
+        if (stringValue != null && stringValue.StartsWith("__CUSTOM_OBJECT__") && stringValue.EndsWith("__"))
+        {
+            var objectId = stringValue.Substring("__CUSTOM_OBJECT__".Length, stringValue.Length - "__CUSTOM_OBJECT__".Length - 2);
+            
+            // Try to get the object from the object manager to determine its type
+            var obj = _objectManager?.GetObject(objectId);
+            if (obj != null)
+            {
+                var typeName = obj.GetType().FullName ?? obj.GetType().Name;
+                return PluginValue.Custom(objectId, typeName);
+            }
+        }
+        
+        // Regular string
+        return new PluginValue { Type = PluginValueType.String, Value = stringValue };
+    }
+
+    private PluginValue ParseCustomObject(JsonElement valElement)
+    {
+        // Parse custom object format: {"object_id": "...", "type_name": "..."}
+        if (valElement.TryGetProperty("object_id", out var objectIdElement) &&
+            valElement.TryGetProperty("type_name", out var typeNameElement))
+        {
+            var objectId = objectIdElement.GetString();
+            var typeName = typeNameElement.GetString();
+            
+            if (objectId != null && typeName != null)
+            {
+                return PluginValue.Custom(objectId, typeName);
+            }
+        }
+        
+        // Fallback to string
+        return new PluginValue { Type = PluginValueType.String, Value = valElement.ToString() };
+    }
+
+    private PluginValue? ParseInputValue(JsonElement inputElement)
+    {
+        // Handle different input formats
+        if (inputElement.ValueKind == JsonValueKind.String)
+        {
+            var inputStr = inputElement.GetString();
+            if (inputStr == "Empty")
+            {
+                return null; // No input
+            }
+            return new PluginValue { Type = PluginValueType.String, Value = inputStr };
+        }
+        
+        // Input format: {"Value": [{"String": {"val": "System.Math", "span": {...}}}, null]}
+        if (inputElement.TryGetProperty("Value", out var valueElement) && 
+            valueElement.ValueKind == JsonValueKind.Array)
+        {
+            var valueArray = valueElement.EnumerateArray().ToArray();
+            if (valueArray.Length > 0 && valueArray[0].ValueKind != JsonValueKind.Null)
+            {
+                return JsonElementToPluginValue(valueArray[0]);
+            }
+        }
+        
+        return null;
+    }
     
     private object ConvertPluginValueToNushellValue(PluginValue value)
     {
-        // Convert PluginValue to nushell tuple variant format (required for nushell 0.97+)
+        // Convert PluginValue to nushell object format (matching Python plugin)
+        var span = new { start = 0, end = 0 };
         return value.Type switch
         {
-            PluginValueType.String => new object[] { "String", new { val = value.Value, span = new { start = 0, end = 0 } } },
-            PluginValueType.Int => new object[] { "Int", new { val = value.Value, span = new { start = 0, end = 0 } } },
-            PluginValueType.Bool => new object[] { "Bool", new { val = value.Value, span = new { start = 0, end = 0 } } },
-            PluginValueType.List => new object[] { "List", new { vals = value.AsList().Select(ConvertPluginValueToNushellValue).ToArray(), span = new { start = 0, end = 0 } } },
-            PluginValueType.Record => new object[] { "Record", new { val = value.AsRecord().ToDictionary(kvp => kvp.Key, kvp => ConvertPluginValueToNushellValue(kvp.Value)), span = new { start = 0, end = 0 } } },
-            PluginValueType.Nothing => new object[] { "Nothing", new { span = new { start = 0, end = 0 } } },
-            _ => new object[] { "String", new { val = value.Value?.ToString() ?? "", span = new { start = 0, end = 0 } } }
+            PluginValueType.String => new { String = new { val = value.Value, span } },
+            PluginValueType.Int => new { Int = new { val = value.Value, span } },
+            PluginValueType.Float => new { Float = new { val = value.Value, span } },
+            PluginValueType.Bool => new { Bool = new { val = value.Value, span } },
+            PluginValueType.List => new { List = new { vals = value.AsList().Select(ConvertPluginValueToNushellValue).ToArray(), span } },
+            PluginValueType.Record => new { Record = new { val = value.AsRecord().ToDictionary(kvp => kvp.Key, kvp => ConvertPluginValueToNushellValue(kvp.Value)), span } },
+            PluginValueType.Custom => new { String = new { val = $"__CUSTOM_OBJECT__{value.GetObjectId()}__", span } }, // Encode custom objects as special strings
+            PluginValueType.Nothing => new { Nothing = new { span } },
+            PluginValueType.Error => throw new Exception(((PluginError)value.Value!).Message), // Convert error to exception so nushell can handle it properly
+            _ => new { String = new { val = value.Value?.ToString() ?? "", span } }
         };
     }
 

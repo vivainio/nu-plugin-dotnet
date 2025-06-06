@@ -38,15 +38,23 @@ public class DotNetGetCommand : BaseCommand
             }
             else if (args.Input?.IsString == true)
             {
-                // Static member access with type name
-                var typeName = args.Input.AsString();
-                var foundType = AssemblyManager.FindType(typeName);
-                if (foundType == null)
+                var inputString = args.Input.AsString();
+                
+                // First try to treat it as a type name for static access
+                var foundType = AssemblyManager.FindType(inputString);
+                if (foundType != null)
                 {
-                    return Task.FromResult(CreateError($"Type '{typeName}' not found"));
+                    // It's a valid type name, use for static access
+                    targetType = foundType;
+                    isStatic = true;
                 }
-                targetType = foundType;
-                isStatic = true;
+                else
+                {
+                    // Not a type name, treat as string instance for instance member access
+                    target = inputString;
+                    targetType = typeof(string);
+                    isStatic = false;
+                }
             }
             else
             {
@@ -147,9 +155,6 @@ public class DotNetGetCommand : BaseCommand
     {
         return !type.IsPrimitive && 
                type != typeof(string) && 
-               type != typeof(DateTime) && 
-               type != typeof(TimeSpan) && 
-               type != typeof(Guid) && 
                type != typeof(decimal) &&
                !type.IsEnum;
     }

@@ -38,14 +38,22 @@ public class DotNetCallCommand : BaseCommand
             }
             else if (args.Input?.IsString == true)
             {
-                // Static method call with type name
-                var typeName = args.Input.AsString();
-                targetType = AssemblyManager.FindType(typeName);
-                if (targetType == null)
+                var inputString = args.Input.AsString();
+                
+                // First try to treat it as a type name for static calls
+                targetType = AssemblyManager.FindType(inputString);
+                if (targetType != null)
                 {
-                    return CreateError($"Type '{typeName}' not found");
+                    // It's a valid type name, use for static calls
+                    isStatic = true;
                 }
-                isStatic = true;
+                else
+                {
+                    // Not a type name, treat as string instance for instance method calls
+                    target = inputString;
+                    targetType = typeof(string);
+                    isStatic = false;
+                }
             }
             else
             {
@@ -145,9 +153,6 @@ public class DotNetCallCommand : BaseCommand
     {
         return !type.IsPrimitive && 
                type != typeof(string) && 
-               type != typeof(DateTime) && 
-               type != typeof(TimeSpan) && 
-               type != typeof(Guid) && 
                type != typeof(decimal) &&
                !type.IsEnum;
     }
