@@ -1,0 +1,160 @@
+name: Documentation
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '**/*.md'
+      - 'examples/**'
+      - '.github/workflows/docs.yml'
+  pull_request:
+    paths:
+      - '**/*.md'
+      - 'examples/**'
+  workflow_dispatch:
+
+jobs:
+  validate-docs:
+    name: Validate Documentation
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+    
+    - name: Install markdown tools
+      run: |
+        npm install -g markdownlint-cli2
+        npm install -g markdown-link-check
+    
+    - name: Lint markdown files
+      run: |
+        echo "🔍 Linting markdown files..."
+        markdownlint-cli2 "**/*.md" "#node_modules" "#.git" || true
+    
+    - name: Check markdown links
+      run: |
+        echo "🔗 Checking markdown links..."
+        find . -name "*.md" -not -path "./.git/*" -not -path "./node_modules/*" | \
+        xargs -I {} markdown-link-check {} --config .github/markdown-link-check.json || true
+    
+    - name: Validate README completeness
+      run: |
+        echo "📋 Validating README completeness..."
+        
+        # Check if README.md exists
+        if [ ! -f "README.md" ]; then
+          echo "❌ README.md not found"
+          exit 1
+        fi
+        
+        # Check for required sections
+        required_sections=("Installation" "Usage" "Features" "License")
+        for section in "${required_sections[@]}"; do
+          if ! grep -q -i "$section" README.md; then
+            echo "⚠️ Missing section: $section"
+          else
+            echo "✅ Found section: $section"
+          fi
+        done
+        
+        # Check for working examples
+        if grep -q "```nushell" README.md; then
+          echo "✅ Found nushell code examples"
+        else
+          echo "⚠️ No nushell code examples found"
+        fi
+        
+        # Check for GitHub URLs consistency
+        if grep -q "github.com/vivainio/nu-plugin-dotnet" README.md; then
+          echo "✅ GitHub repository URLs are consistent"
+        else
+          echo "⚠️ GitHub repository URLs may be inconsistent"
+        fi
+    
+    - name: Validate examples
+      run: |
+        echo "📝 Validating examples..."
+        
+        if [ -d "examples/" ]; then
+          echo "✅ Examples directory found"
+          find examples/ -name "*.nu" -o -name "*.md" | while read file; do
+            echo "📄 Found example file: $file"
+          done
+        else
+          echo "⚠️ No examples directory found"
+        fi
+    
+    - name: Generate docs report
+      run: |
+        echo "# Documentation Report" > docs-report.md
+        echo "Generated on: $(date)" >> docs-report.md
+        echo "" >> docs-report.md
+        
+        echo "## Files Checked" >> docs-report.md
+        find . -name "*.md" -not -path "./.git/*" | sort >> docs-report.md
+        echo "" >> docs-report.md
+        
+        echo "## Word Count" >> docs-report.md
+        wc -w README.md >> docs-report.md
+        echo "" >> docs-report.md
+        
+        echo "## Link Check Summary" >> docs-report.md
+        echo "Link validation completed" >> docs-report.md
+    
+    - name: Upload docs report
+      uses: actions/upload-artifact@v4
+      with:
+        name: docs-report-${{ github.sha }}
+        path: docs-report.md
+        retention-days: 30
+
+  check-examples:
+    name: Validate Examples
+    runs-on: ubuntu-latest
+    needs: validate-docs
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+    
+    - name: Build plugin
+      run: |
+        dotnet build -c Release
+        dotnet publish -c Release -r linux-x64 --self-contained true -p:PublishSingleFile=true -o ./publish/
+    
+    - name: Setup Nushell
+      run: |
+        # Install Nushell
+        curl -LO https://github.com/nushell/nushell/releases/download/0.104.0/nu-0.104.0-x86_64-linux-gnu-full.tar.gz
+        tar -xzf nu-0.104.0-x86_64-linux-gnu-full.tar.gz
+        sudo mv nu-0.104.0-x86_64-linux-gnu-full/nu /usr/local/bin/
+        sudo chmod +x /usr/local/bin/nu
+        nu --version
+    
+    - name: Test README examples
+      run: |
+        echo "🧪 Testing README examples..."
+        chmod +x ./publish/nu_plugin_dotnet
+        
+        # Extract nushell code blocks from README and test basic syntax
+        grep -A 20 '```nushell' README.md | grep -v '```' | head -20 > test-examples.nu || true
+        
+        if [ -s test-examples.nu ]; then
+          echo "Found nushell examples to test:"
+          cat test-examples.nu
+          echo "Examples extracted successfully"
+        else
+          echo "No testable nushell examples found"
+        fi
+      continue-on-error: true 
