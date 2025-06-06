@@ -101,6 +101,50 @@ let $results = [
     } else { 
         $"Console.WriteLine returned: ($result)" 
     }
+}),
+
+# Test 12: Test Nested Object Manipulation
+(test_command "Nested Object Manipulation" {
+    # Create nested structure using working approaches
+    # Test 1: Parse multiple DateTime objects to create a date hierarchy
+    let $start_date = "System.DateTime" | dn call "Parse" "2024-01-01"
+    let $end_date = "System.DateTime" | dn call "Parse" "2024-12-31" 
+    let $current_date = "System.DateTime" | dn call "Parse" "2024-06-15"
+    
+    # Extract components from each date (demonstrating nested access)
+    let $start_year = $start_date | dn get "Year"
+    let $start_month = $start_date | dn get "Month"
+    let $end_year = $end_date | dn get "Year"
+    let $end_month = $end_date | dn get "Month"
+    let $current_day = $current_date | dn get "Day"
+    
+    # Test 2: Create TimeSpan objects for date arithmetic (nested operations)
+    let $days_diff = $end_date | dn call "Subtract" $start_date
+    let $total_days = $days_diff | dn get "TotalDays"
+    
+    # Test 3: Complex path operations (nested string manipulation)
+    let $base_path = "System.IO.Path" | dn call "Combine" "C:" "Projects" "nushell"
+    let $sub_path = "System.IO.Path" | dn call "Combine" $base_path "plugins" "dotnet"
+    let $file_path = "System.IO.Path" | dn call "Combine" $sub_path "test.dll"
+    
+    # Test 4: Environment and system info nesting
+    let $machine = "System.Environment" | dn get "MachineName"
+    let $os_version = "System.Environment" | dn get "OSVersion"
+    let $version_string = $os_version | dn call "ToString"
+    
+    # Test 5: GUID operations for unique identifiers in nested structures
+    let $guid1 = "System.Guid" | dn call "NewGuid"
+    let $guid2 = "System.Guid" | dn call "NewGuid"
+    let $guid1_str = $guid1 | dn call "ToString"
+    let $guid2_str = $guid2 | dn call "ToString"
+    let $guids_equal = $guid1 | dn call "Equals" $guid2
+    
+    # Verify nested operations work correctly
+    if ($start_year == 2024) and ($end_month == 12) and ($current_day == 15) and ($total_days >= 365) and ($file_path | str contains "test.dll") and ($machine | str length) > 0 and ($guid1_str != $guid2_str) and ($guids_equal == false) {
+        $"Nested operations: dates=($start_year)/($end_month), days=($total_days), path_depth=3, guids_unique=true"
+    } else {
+        error make { msg: $"Nested operations failed: year=($start_year), month=($end_month), days=($total_days), equal=($guids_equal)" }
+    }
 })
 
 ]
