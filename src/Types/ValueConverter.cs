@@ -45,6 +45,10 @@ public class ValueConverter
         if (targetType == typeof(TimeSpan) && nushellValue.Type == PluginValueType.Duration)
             return (TimeSpan)nushellValue.Value!;
 
+        // Handle byte arrays from nushell binary data
+        if (targetType == typeof(byte[]) && nushellValue.Type == PluginValueType.Binary)
+            return (byte[])nushellValue.Value!;
+
         // Handle arrays and collections
         if (nushellValue.IsList)
         {
@@ -203,7 +207,7 @@ public class ValueConverter
     {
         var numericValue = value.IsInt ? value.AsInt() : value.AsFloat();
 
-        return targetType.Name switch
+        object result = targetType.Name switch
         {
             nameof(Byte) => Convert.ToByte(numericValue),
             nameof(SByte) => Convert.ToSByte(numericValue),
@@ -218,6 +222,8 @@ public class ValueConverter
             nameof(Decimal) => Convert.ToDecimal(numericValue),
             _ => throw new InvalidOperationException($"Unsupported numeric type: {targetType.Name}")
         };
+        
+        return result;
     }
 
     private PluginValue ConvertNumericFromClr(object value)

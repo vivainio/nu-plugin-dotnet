@@ -29,6 +29,7 @@ public class Program
         catch (Exception ex)
         {
             await Console.Error.WriteLineAsync($"Fatal error: {ex.Message}");
+            await Console.Error.WriteLineAsync($"Stack trace: {ex.StackTrace}");
             return 1;
         }
     }

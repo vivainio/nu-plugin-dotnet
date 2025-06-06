@@ -35,6 +35,7 @@ public class PluginValue
     public bool IsInt => Type == PluginValueType.Int;
     public bool IsFloat => Type == PluginValueType.Float;
     public bool IsString => Type == PluginValueType.String;
+    public bool IsBinary => Type == PluginValueType.Binary;
     public bool IsList => Type == PluginValueType.List;
     public bool IsRecord => Type == PluginValueType.Record;
     public bool IsCustom => Type == PluginValueType.Custom;
@@ -44,6 +45,7 @@ public class PluginValue
     public long AsInt() => Convert.ToInt64(Value);
     public double AsFloat() => Convert.ToDouble(Value);
     public bool AsBool() => Convert.ToBoolean(Value);
+    public byte[] AsBinary() => (byte[])Value!;
     public List<PluginValue> AsList() => (List<PluginValue>)Value!;
     public Dictionary<string, PluginValue> AsRecord() => (Dictionary<string, PluginValue>)Value!;
 
@@ -80,59 +82,153 @@ public enum PluginValueType
 
 public class PluginValueConverter : JsonConverter<PluginValue>
 {
+    private static T? DeserializeWithLogging<T>(string json, JsonSerializerOptions options, string typeName)
+    {
+        try
+        {
+            return JsonSerializer.Deserialize<T>(json, options);
+        }
+        catch (Exception ex)
+        {
+            // Log the error with stack trace
+            try
+            {
+                File.AppendAllText("C:\\temp\\nu-plugin-dotnet.log", 
+                    $"[{DateTime.Now:HH:mm:ss.fff}] DeserializeWithLogging<{typeName}> error: {ex.Message}\n");
+                File.AppendAllText("C:\\temp\\nu-plugin-dotnet.log", 
+                    $"[{DateTime.Now:HH:mm:ss.fff}] Stack trace: {ex.StackTrace}\n");
+                File.AppendAllText("C:\\temp\\nu-plugin-dotnet.log", 
+                    $"[{DateTime.Now:HH:mm:ss.fff}] JSON: {json}\n");
+            }
+            catch { /* Ignore logging errors */ }
+            
+            throw; // Re-throw the original exception
+        }
+    }
+
+    private static byte[] ParseBinaryValueInConverter(JsonElement valueElement)
+    {
+        try
+        {
+            // Handle binary data that can come in two formats:
+            // 1. As a base64-encoded string (older format)
+            // 2. As an array of byte values (newer format)
+            
+            if (valueElement.ValueKind == JsonValueKind.String)
+            {
+                // Base64-encoded string format
+                var base64String = valueElement.GetString();
+                if (base64String != null)
+                {
+                    return Convert.FromBase64String(base64String);
+                }
+            }
+            else if (valueElement.ValueKind == JsonValueKind.Array)
+            {
+                // Array of byte values format
+                return valueElement.EnumerateArray()
+                    .Select(e => (byte)e.GetInt32())
+                    .ToArray();
+            }
+            
+            // Fallback - empty byte array
+            return new byte[0];
+        }
+        catch (Exception ex)
+        {
+            // Log the error with stack trace
+            try
+            {
+                File.AppendAllText("C:\\temp\\nu-plugin-dotnet.log", 
+                    $"[{DateTime.Now:HH:mm:ss.fff}] ParseBinaryValueInConverter error: {ex.Message}\n");
+                File.AppendAllText("C:\\temp\\nu-plugin-dotnet.log", 
+                    $"[{DateTime.Now:HH:mm:ss.fff}] Stack trace: {ex.StackTrace}\n");
+                File.AppendAllText("C:\\temp\\nu-plugin-dotnet.log", 
+                    $"[{DateTime.Now:HH:mm:ss.fff}] ValueKind: {valueElement.ValueKind}\n");
+            }
+            catch { /* Ignore logging errors */ }
+            
+            // Return empty array as fallback
+            return new byte[0];
+        }
+    }
+
     public override PluginValue Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
-        using var doc = JsonDocument.ParseValue(ref reader);
-        var root = doc.RootElement;
-
-        if (!root.TryGetProperty("type", out var typeElement))
-            throw new JsonException("Missing 'type' property");
-
-        var typeName = typeElement.GetString();
-        var pluginValue = new PluginValue();
-
-        pluginValue.Type = typeName switch
+        try
         {
-            "Nothing" => PluginValueType.Nothing,
-            "Bool" => PluginValueType.Bool,
-            "Int" => PluginValueType.Int,
-            "Float" => PluginValueType.Float,
-            "String" => PluginValueType.String,
-            "Binary" => PluginValueType.Binary,
-            "Date" => PluginValueType.Date,
-            "Duration" => PluginValueType.Duration,
-            "List" => PluginValueType.List,
-            "Record" => PluginValueType.Record,
-            "Custom" => PluginValueType.Custom,
-            "Error" => PluginValueType.Error,
-            _ => throw new JsonException($"Unknown type: {typeName}")
-        };
+            using var doc = JsonDocument.ParseValue(ref reader);
+            var root = doc.RootElement;
 
-        if (root.TryGetProperty("val", out var valueElement))
-        {
-            pluginValue.Value = pluginValue.Type switch
+            if (!root.TryGetProperty("type", out var typeElement))
+                throw new JsonException("Missing 'type' property");
+
+            var typeName = typeElement.GetString();
+            var pluginValue = new PluginValue();
+
+            pluginValue.Type = typeName switch
             {
-                PluginValueType.Nothing => null,
-                PluginValueType.Bool => valueElement.GetBoolean(),
-                PluginValueType.Int => valueElement.GetInt64(),
-                PluginValueType.Float => valueElement.GetDouble(),
-                PluginValueType.String => valueElement.GetString(),
-                PluginValueType.Binary => Convert.FromBase64String(valueElement.GetString()!),
-                PluginValueType.Date => valueElement.GetDateTime(),
-                PluginValueType.Duration => TimeSpan.FromTicks(valueElement.GetInt64()),
-                PluginValueType.List => JsonSerializer.Deserialize<List<PluginValue>>(valueElement.GetRawText(), options),
-                PluginValueType.Record => JsonSerializer.Deserialize<Dictionary<string, PluginValue>>(valueElement.GetRawText(), options),
-                PluginValueType.Custom => JsonSerializer.Deserialize<Dictionary<string, object>>(valueElement.GetRawText(), options),
-                _ => valueElement.GetRawText()
+                "Nothing" => PluginValueType.Nothing,
+                "Bool" => PluginValueType.Bool,
+                "Int" => PluginValueType.Int,
+                "Float" => PluginValueType.Float,
+                "String" => PluginValueType.String,
+                "Binary" => PluginValueType.Binary,
+                "Date" => PluginValueType.Date,
+                "Duration" => PluginValueType.Duration,
+                "List" => PluginValueType.List,
+                "Record" => PluginValueType.Record,
+                "Custom" => PluginValueType.Custom,
+                "Error" => PluginValueType.Error,
+                _ => throw new JsonException($"Unknown type: {typeName}")
             };
-        }
 
-        if (root.TryGetProperty("span", out var spanElement))
+            if (root.TryGetProperty("val", out var valueElement))
+            {
+                pluginValue.Value = pluginValue.Type switch
+                {
+                    PluginValueType.Nothing => null,
+                    PluginValueType.Bool => valueElement.GetBoolean(),
+                    PluginValueType.Int => valueElement.GetInt64(),
+                    PluginValueType.Float => valueElement.GetDouble(),
+                    PluginValueType.String => valueElement.GetString(),
+                    PluginValueType.Binary => ParseBinaryValueInConverter(valueElement),
+                    PluginValueType.Date => valueElement.GetDateTime(),
+                    PluginValueType.Duration => TimeSpan.FromTicks(valueElement.GetInt64()),
+                    PluginValueType.List => DeserializeWithLogging<List<PluginValue>>(valueElement.GetRawText(), options, "List"),
+                    PluginValueType.Record => DeserializeWithLogging<Dictionary<string, PluginValue>>(valueElement.GetRawText(), options, "Record"),
+                    PluginValueType.Custom => JsonSerializer.Deserialize<Dictionary<string, object>>(valueElement.GetRawText(), options),
+                    _ => valueElement.GetRawText()
+                };
+            }
+
+            if (root.TryGetProperty("span", out var spanElement))
+            {
+                pluginValue.Span = JsonSerializer.Deserialize<Dictionary<string, object>>(spanElement.GetRawText(), options);
+            }
+
+            return pluginValue;
+        }
+        catch (Exception ex)
         {
-            pluginValue.Span = JsonSerializer.Deserialize<Dictionary<string, object>>(spanElement.GetRawText(), options);
+            // Log the error with full stack trace
+            try
+            {
+                File.AppendAllText("C:\\temp\\nu-plugin-dotnet.log", 
+                    $"[{DateTime.Now:HH:mm:ss.fff}] PluginValueConverter.Read error: {ex.Message}\n");
+                File.AppendAllText("C:\\temp\\nu-plugin-dotnet.log", 
+                    $"[{DateTime.Now:HH:mm:ss.fff}] Exception type: {ex.GetType().FullName}\n");
+                File.AppendAllText("C:\\temp\\nu-plugin-dotnet.log", 
+                    $"[{DateTime.Now:HH:mm:ss.fff}] Stack trace: {ex.StackTrace}\n");
+                File.AppendAllText("C:\\temp\\nu-plugin-dotnet.log", 
+                    $"[{DateTime.Now:HH:mm:ss.fff}] Inner exception: {ex.InnerException?.Message ?? "None"}\n");
+                File.AppendAllText("C:\\temp\\nu-plugin-dotnet.log", 
+                    $"[{DateTime.Now:HH:mm:ss.fff}] Inner exception stack trace: {ex.InnerException?.StackTrace ?? "None"}\n");
+            }
+            catch { /* Ignore logging errors */ }
+            
+            throw; // Re-throw the original exception
         }
-
-        return pluginValue;
     }
 
     public override void Write(Utf8JsonWriter writer, PluginValue value, JsonSerializerOptions options)

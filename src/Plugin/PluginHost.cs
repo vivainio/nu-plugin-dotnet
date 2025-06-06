@@ -44,6 +44,8 @@ public class PluginHost
         catch (Exception ex)
         {
             WriteLog($"Initialization failed: {ex.Message}");
+            WriteLog($"Exception type: {ex.GetType().FullName}");
+            WriteLog($"Stack trace: {ex.StackTrace ?? "No stack trace available"}");
             _initializationSucceeded = false;
         }
     }
@@ -149,7 +151,9 @@ public class PluginHost
                 }
                 catch (JsonException ex)
                 {
-                    WriteLog($"JSON error: {ex.Message}");
+                    WriteLog($"[JSON_HANDLER] JSON error: {ex.Message}");
+                    WriteLog($"[JSON_HANDLER] Exception type: {ex.GetType().FullName}");
+                    WriteLog($"[JSON_HANDLER] Stack trace: {ex.StackTrace ?? "No stack trace available"}");
                     var errorResponse = CreateErrorResponse($"JSON parsing error: {ex.Message}");
                     var errorJson = JsonSerializer.Serialize(errorResponse);
                     Console.WriteLine(errorJson);
@@ -157,7 +161,9 @@ public class PluginHost
                 }
                 catch (Exception ex)
                 {
-                    WriteLog($"Command error: {ex.Message}");
+                    WriteLog($"[COMMAND_HANDLER] Command error: {ex.Message}");
+                    WriteLog($"[COMMAND_HANDLER] Exception type: {ex.GetType().FullName}");
+                    WriteLog($"[COMMAND_HANDLER] Stack trace: {ex.StackTrace ?? "No stack trace available"}");
                     var errorResponse = CreateErrorResponse($"Internal error: {ex.Message}");
                     var errorJson = JsonSerializer.Serialize(errorResponse);
                     Console.WriteLine(errorJson);
@@ -308,22 +314,30 @@ public class PluginHost
         catch (Exception ex)
         {
             WriteLog($"Error executing command: {ex.Message}");
+            
+            try { WriteLog($"Exception type: {ex.GetType().FullName}"); } catch { WriteLog("Failed to log exception type"); }
+            
+            try { WriteLog($"Stack trace: {ex.StackTrace ?? "No stack trace available"}"); } catch { WriteLog("Failed to log stack trace"); }
+            
             return CreateErrorResponse(ex.Message);
         }
     }
 
     private async Task<object> HandleRunCall(JsonElement runElement)
     {
+        WriteLog("=== HandleRunCall ENTRY ===");
         WriteLog("Handling Run call");
         
         try
         {
+            WriteLog("=== Inside try block ===");
             if (!_initializationSucceeded || _commandRegistry == null)
             {
                 WriteLog("Initialization not successful, returning error");
                 return new { Error = new { msg = "Plugin initialization failed. Please check your .NET installation." } };
             }
 
+            WriteLog("Step 1: Parsing name and call properties");
             // Parse the run call structure
             if (!runElement.TryGetProperty("name", out var nameElement) ||
                 !runElement.TryGetProperty("call", out var callElement))
@@ -331,10 +345,12 @@ public class PluginHost
                 WriteLog("Missing name or call in run element");
                 return new { Error = new { msg = "Invalid run call format" } };
             }
-
+            
+            WriteLog("Step 2: Getting command name");
             var commandName = nameElement.GetString();
             WriteLog($"Executing command: {commandName}");
 
+            WriteLog("Step 3: Creating PluginCall object");
             // Create a simple PluginCall from the JSON
             var pluginCall = new PluginCall
             {
@@ -344,16 +360,24 @@ public class PluginHost
                 Input = null
             };
 
+            WriteLog("Step 4: Parsing positional arguments");
             // Parse positional arguments if any
             if (callElement.TryGetProperty("positional", out var positionalElement) && 
                 positionalElement.ValueKind == JsonValueKind.Array)
             {
+                WriteLog($"Found positional array with {positionalElement.GetArrayLength()} items");
+                int index = 0;
                 foreach (var item in positionalElement.EnumerateArray())
                 {
-                    pluginCall.Positional.Add(JsonElementToPluginValue(item));
+                    WriteLog($"Processing positional argument {index}: {item.GetRawText()}");
+                    var pluginValue = JsonElementToPluginValue(item);
+                    WriteLog($"Converted to PluginValue: Type={pluginValue.Type}, Value type={pluginValue.Value?.GetType().Name ?? "null"}");
+                    pluginCall.Positional.Add(pluginValue);
+                    index++;
                 }
             }
 
+            WriteLog("Step 5: Parsing named arguments");
             // Parse named arguments if any
             if (callElement.TryGetProperty("named", out var namedElement) && 
                 namedElement.ValueKind == JsonValueKind.Array)
@@ -375,12 +399,14 @@ public class PluginHost
                 }
             }
 
+            WriteLog("Step 6: Parsing input");
             // Parse input if any
             if (runElement.TryGetProperty("input", out var inputElement))
             {
                 pluginCall.Input = ParseInputValue(inputElement);
             }
 
+            WriteLog("Step 7: Executing command");
             // Execute the command
             var result = await _commandRegistry.ExecuteAsync(commandName ?? "", pluginCall);
             WriteLog("Command executed successfully");
@@ -391,46 +417,79 @@ public class PluginHost
         }
         catch (Exception ex)
         {
-            WriteLog($"Error executing run call: {ex.Message}");
+            WriteLog($"[HANDLERUN_HANDLER] Error executing run call: {ex.Message}");
+            
+            try { WriteLog($"[HANDLERUN_HANDLER] Exception type: {ex.GetType().FullName}"); } catch { WriteLog("[HANDLERUN_HANDLER] Failed to log exception type"); }
+            
+            try { WriteLog($"[HANDLERUN_HANDLER] Stack trace: {ex.StackTrace ?? "No stack trace available"}"); } catch { WriteLog("[HANDLERUN_HANDLER] Failed to log stack trace"); }
+            
+            try { WriteLog($"[HANDLERUN_HANDLER] Inner exception: {ex.InnerException?.Message ?? "None"}"); } catch { WriteLog("[HANDLERUN_HANDLER] Failed to log inner exception message"); }
+            
+            try { WriteLog($"[HANDLERUN_HANDLER] Inner exception stack trace: {ex.InnerException?.StackTrace ?? "None"}"); } catch { WriteLog("[HANDLERUN_HANDLER] Failed to log inner exception stack trace"); }
+            
             return new { Error = new { msg = ex.Message } };
         }
     }
     
     private PluginValue JsonElementToPluginValue(JsonElement element)
     {
-        // Handle nushell value format: {"String": {"val": "value", "span": {...}}}
-        if (element.ValueKind == JsonValueKind.Object)
+        try
         {
-            foreach (var property in element.EnumerateObject())
+            WriteLog($"JsonElementToPluginValue called with element kind: {element.ValueKind}");
+            WriteLog($"Element JSON: {element.GetRawText()}");
+            
+            // Handle nushell value format: {"String": {"val": "value", "span": {...}}}
+            if (element.ValueKind == JsonValueKind.Object)
             {
-                var typeName = property.Name;
-                var valueObj = property.Value;
-                
-                if (valueObj.TryGetProperty("val", out var valElement))
+                foreach (var property in element.EnumerateObject())
                 {
-                    return typeName switch
+                    var typeName = property.Name;
+                    var valueObj = property.Value;
+                    WriteLog($"Processing property: {typeName}, valueObj kind: {valueObj.ValueKind}");
+                    WriteLog($"ValueObj JSON: {valueObj.GetRawText()}");
+                    
+                    if (valueObj.TryGetProperty("val", out var valElement))
                     {
-                        "String" => ParseStringValue(valElement.GetString()),
-                        "Int" => new PluginValue { Type = PluginValueType.Int, Value = valElement.GetInt64() },
-                        "Float" => new PluginValue { Type = PluginValueType.Float, Value = valElement.GetDouble() },
-                        "Bool" => new PluginValue { Type = PluginValueType.Bool, Value = valElement.GetBoolean() },
-                        "Custom" => ParseCustomObject(valElement),
-                        _ => new PluginValue { Type = PluginValueType.String, Value = valElement.ToString() }
-                    };
+                        WriteLog($"Found 'val' property, valElement kind: {valElement.ValueKind}");
+                        WriteLog($"ValElement JSON: {valElement.GetRawText()}");
+                        WriteLog($"About to process type: {typeName}");
+                        
+                        return typeName switch
+                        {
+                            "String" => valElement.ValueKind == JsonValueKind.Array 
+                                ? throw new InvalidOperationException($"Received array for String type. This might be binary data misidentified as string. ValElement: {valElement.GetRawText()}")
+                                : ParseStringValue(valElement.GetString()),
+                            "Int" => new PluginValue { Type = PluginValueType.Int, Value = valElement.GetInt64() },
+                            "Float" => new PluginValue { Type = PluginValueType.Float, Value = valElement.GetDouble() },
+                            "Bool" => new PluginValue { Type = PluginValueType.Bool, Value = valElement.GetBoolean() },
+                            "Binary" => ParseBinaryValue(valElement),
+                            "Custom" => ParseCustomObject(valElement),
+                            _ => new PluginValue { Type = PluginValueType.String, Value = valElement.ToString() }
+                        };
+                    }
                 }
             }
+            
+            // Fallback to simple conversion
+            return element.ValueKind switch
+            {
+                JsonValueKind.String => new PluginValue { Type = PluginValueType.String, Value = element.GetString() },
+                JsonValueKind.Number => new PluginValue { Type = PluginValueType.Int, Value = element.GetInt64() },
+                JsonValueKind.True => new PluginValue { Type = PluginValueType.Bool, Value = true },
+                JsonValueKind.False => new PluginValue { Type = PluginValueType.Bool, Value = false },
+                JsonValueKind.Null => new PluginValue { Type = PluginValueType.Nothing, Value = null },
+                _ => new PluginValue { Type = PluginValueType.String, Value = element.ToString() }
+            };
         }
-        
-        // Fallback to simple conversion
-        return element.ValueKind switch
+        catch (Exception ex)
         {
-            JsonValueKind.String => new PluginValue { Type = PluginValueType.String, Value = element.GetString() },
-            JsonValueKind.Number => new PluginValue { Type = PluginValueType.Int, Value = element.GetInt64() },
-            JsonValueKind.True => new PluginValue { Type = PluginValueType.Bool, Value = true },
-            JsonValueKind.False => new PluginValue { Type = PluginValueType.Bool, Value = false },
-            JsonValueKind.Null => new PluginValue { Type = PluginValueType.Nothing, Value = null },
-            _ => new PluginValue { Type = PluginValueType.String, Value = element.ToString() }
-        };
+            WriteLog($"JsonElementToPluginValue error: {ex.Message}");
+            WriteLog($"Exception type: {ex.GetType().FullName}");
+            WriteLog($"Stack trace: {ex.StackTrace ?? "No stack trace available"}");
+            WriteLog($"Element kind: {element.ValueKind}");
+            WriteLog($"Element raw text: {element.GetRawText()}");
+            throw; // Re-throw to propagate the error
+        }
     }
 
     private PluginValue ParseStringValue(string? stringValue)
@@ -451,6 +510,34 @@ public class PluginHost
         
         // Regular string
         return new PluginValue { Type = PluginValueType.String, Value = stringValue };
+    }
+
+    private PluginValue ParseBinaryValue(JsonElement valElement)
+    {
+        // Handle binary data that can come in two formats:
+        // 1. As a base64-encoded string (older format)
+        // 2. As an array of byte values (newer format)
+        
+        if (valElement.ValueKind == JsonValueKind.String)
+        {
+            // Base64-encoded string format
+            var base64String = valElement.GetString();
+            if (base64String != null)
+            {
+                return new PluginValue { Type = PluginValueType.Binary, Value = Convert.FromBase64String(base64String) };
+            }
+        }
+        else if (valElement.ValueKind == JsonValueKind.Array)
+        {
+            // Array of byte values format
+            var bytes = valElement.EnumerateArray()
+                .Select(e => (byte)e.GetInt32())
+                .ToArray();
+            return new PluginValue { Type = PluginValueType.Binary, Value = bytes };
+        }
+        
+        // Fallback - empty byte array
+        return new PluginValue { Type = PluginValueType.Binary, Value = new byte[0] };
     }
 
     private PluginValue ParseCustomObject(JsonElement valElement)
@@ -509,6 +596,7 @@ public class PluginHost
             PluginValueType.Int => new { Int = new { val = value.Value, span } },
             PluginValueType.Float => new { Float = new { val = value.Value, span } },
             PluginValueType.Bool => new { Bool = new { val = value.Value, span } },
+            PluginValueType.Binary => new { Binary = new { val = Convert.ToBase64String((byte[])value.Value!), span } },
             PluginValueType.List => new { List = new { vals = value.AsList().Select(ConvertPluginValueToNushellValue).ToArray(), span } },
             PluginValueType.Record => new { Record = new { val = value.AsRecord().ToDictionary(kvp => kvp.Key, kvp => ConvertPluginValueToNushellValue(kvp.Value)), span } },
             PluginValueType.Custom => new { String = new { val = $"__CUSTOM_OBJECT__{value.GetObjectId()}__", span } }, // Encode custom objects as special strings
