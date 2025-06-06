@@ -44,42 +44,156 @@ public class CommandRegistry
 
     public List<object> GetSignatures()
     {
-        return _commands.Keys.Select(commandName => new
+        return new List<object>
         {
-            sig = new
+            new
             {
-                name = commandName,
-                description = GetCommandDescription(commandName),
-                extra_description = "",
-                search_terms = new string[0],
-                required_positional = new object[0],
-                optional_positional = new object[0],
-                rest_positional = (object?)null,
-                vectorizes_over_list = false,
-                named = new[]
+                Signature = _commands.Keys.Select(commandName => new
                 {
-                    new
+                    sig = new
                     {
-                        @long = "help",
-                        @short = "h",
-                        arg = (object?)null,
-                        required = false,
-                        desc = "Display the help message for this command",
-                        var_id = (object?)null,
-                        default_value = (object?)null
-                    }
-                },
-                input_type = "Any",
-                output_type = "Any",
-                input_output_types = new object[0],
-                allow_variants_without_examples = false,
-                is_filter = false,
-                creates_scope = false,
-                allows_unknown_args = false,
-                category = "Default"
+                        name = commandName,
+                        description = GetCommandDescription(commandName),
+                        extra_description = "",
+                        search_terms = new string[0],
+                        required_positional = GetRequiredPositional(commandName),
+                        optional_positional = GetOptionalPositional(commandName),
+                        rest_positional = GetRestPositional(commandName),
+                        vectorizes_over_list = false,
+                        named = GetNamedParameters(commandName),
+                        input_output_types = new object[][] { new object[] { "Any", "Any" } },
+                        allow_variants_without_examples = true,
+                        is_filter = false,
+                        creates_scope = false,
+                        allows_unknown_args = false,
+                        category = "Default"
+                    },
+                    examples = new object[0]
+                }).ToArray()
+            }
+        };
+    }
+
+    private object[] GetRequiredPositional(string commandName)
+    {
+        return commandName switch
+        {
+            "dn call" => new object[]
+            {
+                new
+                {
+                    name = "method",
+                    desc = "The method name to call",
+                    shape = "String"
+                }
             },
-            examples = new object[0]
-        }).Cast<object>().ToList();
+            "dn get" => new object[]
+            {
+                new
+                {
+                    name = "property",
+                    desc = "The property or field name to get",
+                    shape = "String"
+                }
+            },
+            "dn set" => new object[]
+            {
+                new
+                {
+                    name = "property",
+                    desc = "The property or field name to set",
+                    shape = "String"
+                },
+                new
+                {
+                    name = "value",
+                    desc = "The value to set",
+                    shape = "Any"
+                }
+            },
+            "dn types" => new object[]
+            {
+                new
+                {
+                    name = "assembly",
+                    desc = "The assembly name to list types from",
+                    shape = "String"
+                }
+            },
+            "dn members" => new object[]
+            {
+                new
+                {
+                    name = "type",
+                    desc = "The type name to list members from",
+                    shape = "String"
+                }
+            },
+            _ => new object[0]
+        };
+    }
+
+    private object[] GetOptionalPositional(string commandName)
+    {
+        return new object[0];
+    }
+
+    private object? GetRestPositional(string commandName)
+    {
+        return commandName switch
+        {
+            "dn call" => new
+            {
+                name = "args",
+                desc = "Arguments to pass to the method",
+                shape = "Any"
+            },
+            _ => null
+        };
+    }
+
+    private object[] GetNamedParameters(string commandName)
+    {
+        var baseParams = new[]
+        {
+            new
+            {
+                @long = "help",
+                @short = "h",
+                arg = (object?)null,
+                required = false,
+                desc = "Display the help message for this command"
+            }
+        };
+
+        var commandSpecificParams = commandName switch
+        {
+            "dn new" => new object[]
+            {
+                new
+                {
+                    @long = "type",
+                    @short = "t",
+                    arg = "String",
+                    required = false,
+                    desc = "The type name to create (required for parameterless constructors)"
+                }
+            },
+            "dn load-assembly" => new object[]
+            {
+                new
+                {
+                    @long = "path",
+                    @short = "p",
+                    arg = "String",
+                    required = false,
+                    desc = "The assembly file path to load"
+                }
+            },
+            _ => new object[0]
+        };
+
+        return baseParams.Concat(commandSpecificParams).ToArray();
     }
 
     private string GetCommandDescription(string commandName)

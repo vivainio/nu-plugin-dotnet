@@ -102,6 +102,22 @@ public class PluginHost
                 
                 try
                 {
+                    // Handle simple string messages like "Goodbye"
+                    if (line.StartsWith('"') && line.EndsWith('"'))
+                    {
+                        var message = JsonSerializer.Deserialize<string>(line);
+                        if (message == "Goodbye")
+                        {
+                            WriteLog("Received Goodbye message, plugin exiting");
+                            break;
+                        }
+                        else
+                        {
+                            WriteLog($"Received unknown string message: {message}");
+                            continue;
+                        }
+                    }
+                    
                     // Parse the raw JSON to determine message type
                     using var jsonDoc = JsonDocument.Parse(line);
                     var root = jsonDoc.RootElement;
@@ -200,8 +216,8 @@ public class PluginHost
                     
                     var callResponse = callType switch
                     {
-                        "Signature" => (object)new { Signature = _commandRegistry?.GetSignatures() ?? new List<object>() },
-                        "Metadata" => (object)new { Metadata = new { version = "1.0.0" } },
+                        "Signature" => HandleSignature(),
+                        "Metadata" => HandleMetadata(),
                         _ => (object)new { Error = new { msg = $"Unknown call type: {callType}" } }
                     };
                     
@@ -238,17 +254,14 @@ public class PluginHost
         return CreateErrorResponse("Invalid call format");
     }
 
-    private PluginResponse HandleSignature()
+    private object HandleSignature()
     {
         WriteLog("Handling signature request");
         
-        var signatures = _commandRegistry.GetSignatures();
+        var signatures = _commandRegistry?.GetSignatures();
         
-        return new PluginResponse
-        {
-            Type = "Signature", 
-            Value = signatures
-        };
+        // Return the signatures directly as nushell expects them
+        return signatures?.FirstOrDefault() ?? new { Signature = new object[0] };
     }
 
     private object HandleMetadata()
@@ -367,7 +380,13 @@ public class PluginHost
             var result = await _commandRegistry.ExecuteAsync(commandName ?? "", pluginCall);
             WriteLog("Command executed successfully");
             
-            return new { PipelineData = new { Value = ConvertPluginValueToNushellValue(result) } };
+            // Return proper CallResponse format that nushell can decode  
+            // For nushell 0.97+, Value is a tuple variant: ["Value", <value>]
+            var nushellValue = ConvertPluginValueToNushellValue(result);
+            return new object[] { 
+                "PipelineData", 
+                new object[] { "Value", nushellValue }
+            };
         }
         catch (Exception ex)
         {
@@ -392,14 +411,16 @@ public class PluginHost
     
     private object ConvertPluginValueToNushellValue(PluginValue value)
     {
-        // Convert PluginValue back to nushell-compatible format
+        // Convert PluginValue to nushell tuple variant format (required for nushell 0.97+)
         return value.Type switch
         {
-            PluginValueType.String => new { String = new { val = value.Value, span = new { start = 0, end = 0 } } },
-            PluginValueType.Int => new { Int = new { val = value.Value, span = new { start = 0, end = 0 } } },
-            PluginValueType.Bool => new { Bool = new { val = value.Value, span = new { start = 0, end = 0 } } },
-            PluginValueType.List => new { List = new { vals = value.Value, span = new { start = 0, end = 0 } } },
-            _ => new { String = new { val = value.Value?.ToString() ?? "", span = new { start = 0, end = 0 } } }
+            PluginValueType.String => new object[] { "String", new { val = value.Value, span = new { start = 0, end = 0 } } },
+            PluginValueType.Int => new object[] { "Int", new { val = value.Value, span = new { start = 0, end = 0 } } },
+            PluginValueType.Bool => new object[] { "Bool", new { val = value.Value, span = new { start = 0, end = 0 } } },
+            PluginValueType.List => new object[] { "List", new { vals = value.AsList().Select(ConvertPluginValueToNushellValue).ToArray(), span = new { start = 0, end = 0 } } },
+            PluginValueType.Record => new object[] { "Record", new { val = value.AsRecord().ToDictionary(kvp => kvp.Key, kvp => ConvertPluginValueToNushellValue(kvp.Value)), span = new { start = 0, end = 0 } } },
+            PluginValueType.Nothing => new object[] { "Nothing", new { span = new { start = 0, end = 0 } } },
+            _ => new object[] { "String", new { val = value.Value?.ToString() ?? "", span = new { start = 0, end = 0 } } }
         };
     }
 
