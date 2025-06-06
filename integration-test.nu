@@ -188,6 +188,55 @@ let $results = [
     } else {
         error make { msg: $"Object conversion failed: some conversions did not produce expected results" }
     }
+}),
+
+# Test 14: Test Byte Array Operations
+(test_command "Byte Array Operations" {
+    # Test working with byte arrays for binary data operations
+    
+    # Test 1: Create byte array from ASCII string
+    let $ascii_bytes = "System.Text.Encoding" | dn get "ASCII" | dn call "GetBytes" "ABC"
+    let $ascii_length = $ascii_bytes | dn get "Length"
+    
+    # Test 2: Inspect byte array with dn obj command (shows as list of integers)
+    let $bytes_list = $ascii_bytes | dn obj
+    
+    # Test 3: Array element access to check specific byte values
+    let $first_byte = $ascii_bytes | dn call "GetValue" 0
+    let $second_byte = $ascii_bytes | dn call "GetValue" 1
+    let $third_byte = $ascii_bytes | dn call "GetValue" 2
+    
+    # Test 4: Create UTF8 byte array (without decode to avoid .NET 8 issues)
+    let $utf8_bytes = "System.Text.Encoding" | dn get "UTF8" | dn call "GetBytes" "Hello"
+    let $utf8_length = $utf8_bytes | dn get "Length"
+    
+    # Test 5: Empty byte array
+    let $empty_bytes = "System.Text.Encoding" | dn get "ASCII" | dn call "GetBytes" ""
+    let $empty_length = $empty_bytes | dn get "Length"
+    
+    # Test 6: Byte array properties
+    let $utf8_first = $utf8_bytes | dn call "GetValue" 0  # 'H' = 72
+    
+    # Verify byte array operations work correctly
+    let $ascii_created = $ascii_length == 3
+    let $bytes_are_list = ($bytes_list | length) == 3
+    let $bytes_correct_values = ($bytes_list | get 0) == 65 and ($bytes_list | get 1) == 66 and ($bytes_list | get 2) == 67
+    
+    # Test ASCII byte values: A=65, B=66, C=67
+    let $first_is_65 = $first_byte == 65   # ASCII 'A'
+    let $second_is_66 = $second_byte == 66 # ASCII 'B' 
+    let $third_is_67 = $third_byte == 67   # ASCII 'C'
+    
+    let $utf8_created = $utf8_length == 5
+    let $utf8_first_correct = $utf8_first == 72  # 'H' = 72
+    let $empty_array_works = $empty_length == 0
+    
+    # Verify all byte array operations successful
+    if $ascii_created and $bytes_are_list and $bytes_correct_values and $first_is_65 and $second_is_66 and $third_is_67 and $utf8_created and $utf8_first_correct and $empty_array_works {
+        $"Byte arrays: Creation=✓, Lists=✓, Access=✓, Values=✓, UTF8=✓"
+    } else {
+        error make { msg: $"Byte array operations failed: ascii=($ascii_created), list=($bytes_are_list), values=($bytes_correct_values), access=($first_is_65), utf8=($utf8_created)" }
+    }
 })
 
 ]
