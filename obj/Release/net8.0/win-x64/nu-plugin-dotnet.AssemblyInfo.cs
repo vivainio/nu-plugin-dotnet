@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("nu_plugin_dotnet")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f38d8f044c63b179759ad5b68aa9bceace4fae8f")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+a9824a62502addf8b7680d78e3d4e48d9245c901")]
 [assembly: System.Reflection.AssemblyProductAttribute("nu_plugin_dotnet")]
 [assembly: System.Reflection.AssemblyTitleAttribute("nu_plugin_dotnet")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -41,6 +41,62 @@ public class CommandRegistry
         var args = new CommandArgs(call, _valueConverter);
         return await command.ExecuteAsync(args);
     }
+
+    public List<object> GetSignatures()
+    {
+        return _commands.Keys.Select(commandName => new
+        {
+            sig = new
+            {
+                name = commandName,
+                description = GetCommandDescription(commandName),
+                extra_description = "",
+                search_terms = new string[0],
+                required_positional = new object[0],
+                optional_positional = new object[0],
+                rest_positional = (object?)null,
+                vectorizes_over_list = false,
+                named = new[]
+                {
+                    new
+                    {
+                        @long = "help",
+                        @short = "h",
+                        arg = (object?)null,
+                        required = false,
+                        desc = "Display the help message for this command",
+                        var_id = (object?)null,
+                        default_value = (object?)null
+                    }
+                },
+                input_type = "Any",
+                output_type = "Any",
+                input_output_types = new object[0],
+                allow_variants_without_examples = false,
+                is_filter = false,
+                creates_scope = false,
+                allows_unknown_args = false,
+                category = "Default"
+            },
+            examples = new object[0]
+        }).Cast<object>().ToList();
+    }
+
+    private string GetCommandDescription(string commandName)
+    {
+        return commandName switch
+        {
+            "dn new" => "Create a new .NET object",
+            "dn call" => "Call a method on a .NET object",
+            "dn get" => "Get a property or field from a .NET object",
+            "dn set" => "Set a property or field on a .NET object",
+            "dn load-assembly" => "Load a .NET assembly",
+            "dn assemblies" => "List loaded assemblies",
+            "dn types" => "List types in an assembly",
+            "dn members" => "List members of a type",
+            _ => "Unknown command"
+        };
+    }
 }
 
 public class CommandArgs

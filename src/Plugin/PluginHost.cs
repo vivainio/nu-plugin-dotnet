@@ -1,4 +1,7 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using NuPluginDotNet.Commands;
 using NuPluginDotNet.DotNet;
 using NuPluginDotNet.Types;
@@ -58,136 +61,205 @@ public class PluginHost
 
     public async Task RunAsync()
     {
-        WriteLog("RunAsync started");
+        WriteLog("RunAsync started - implementing correct nushell plugin protocol");
         
         try
         {
-            WriteLog("Setting up console encoding");
+            WriteLog("Step 1: Sending encoding declaration first (required by nushell protocol)");
+            
+            // CRITICAL: First thing must be encoding declaration
+            // Format: [length_byte][encoding_string]
+            // For JSON: \x04json (4 bytes + "json")
+            var encoding = "json";
+            var encodingBytes = System.Text.Encoding.UTF8.GetBytes(encoding);
+            var lengthByte = (byte)encodingBytes.Length;
+            
+            // Write directly to stdout with immediate flush
+            using var stdout = Console.OpenStandardOutput();
+            await stdout.WriteAsync(new[] { lengthByte }, 0, 1);
+            await stdout.WriteAsync(encodingBytes, 0, encodingBytes.Length);
+            await stdout.FlushAsync();
+            
+            WriteLog($"Encoding declaration sent: length={lengthByte}, encoding={encoding}");
+            
+            WriteLog("Step 2: Now waiting for Hello message from nushell...");
+            
+            // Now use regular Console I/O for JSON protocol
             Console.InputEncoding = System.Text.Encoding.UTF8;
             Console.OutputEncoding = System.Text.Encoding.UTF8;
-
-            WriteLog("Starting main communication loop with timeout");
             
-            // Use a very short timeout to avoid hanging during registration
-            string? line = null;
-            
-            try
+            // Read and respond to messages
+            string? line;
+            while ((line = await Console.In.ReadLineAsync()) != null)
             {
-                WriteLog("Attempting to read input with 5-second timeout...");
-                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                WriteLog($"Received message: {line}");
                 
-                var readTask = Task.Run(async () =>
+                if (string.IsNullOrWhiteSpace(line))
                 {
-                    WriteLog("ReadTask: About to call Console.ReadLine()");
-                    var result = Console.ReadLine();
-                    WriteLog($"ReadTask: Console.ReadLine() returned: {result ?? "null"}");
-                    return result;
-                });
-                
-                line = await readTask.WaitAsync(cts.Token);
-                WriteLog($"Successfully read line: {line ?? "null"}");
-            }
-            catch (TimeoutException)
-            {
-                WriteLog("Input read timed out after 5 seconds - exiting gracefully");
-                return;
-            }
-            catch (OperationCanceledException)
-            {
-                WriteLog("Input read was cancelled - exiting gracefully");
-                return;
-            }
-            catch (Exception ex)
-            {
-                WriteLog($"Error reading input: {ex.Message}");
-                return;
-            }
-            
-            if (line == null)
-            {
-                WriteLog("No input received, exiting");
-                return;
-            }
-
-            if (string.IsNullOrWhiteSpace(line))
-            {
-                WriteLog("Empty input received, exiting");
-                return;
-            }
-
-            WriteLog("Processing input...");
-            
-            try
-            {
-                var request = JsonSerializer.Deserialize<PluginRequest>(line);
-                if (request == null)
-                {
-                    WriteLog("Failed to deserialize request");
-                    return;
+                    WriteLog("Empty line, continuing");
+                    continue;
                 }
-
-                WriteLog($"Request type: {request.Type}");
-
-                var response = request.Type switch
+                
+                try
                 {
-                    "Signature" => HandleSignature(),
-                    "Run" => await HandleRun(request),
-                    _ => CreateErrorResponse($"Unknown request type: {request.Type}")
-                };
-
-                WriteLog($"Sending response...");
-                var responseJson = JsonSerializer.Serialize(response);
-                Console.WriteLine(responseJson);
-                Console.Out.Flush();
-                WriteLog("Response sent successfully");
-            }
-            catch (JsonException ex)
-            {
-                WriteLog($"JSON error: {ex.Message}");
-                var errorResponse = CreateErrorResponse($"JSON parsing error: {ex.Message}");
-                var errorJson = JsonSerializer.Serialize(errorResponse);
-                Console.WriteLine(errorJson);
-                Console.Out.Flush();
-            }
-            catch (Exception ex)
-            {
-                WriteLog($"Error: {ex.Message}");
-                var errorResponse = CreateErrorResponse($"Internal error: {ex.Message}");
-                var errorJson = JsonSerializer.Serialize(errorResponse);
-                Console.WriteLine(errorJson);
-                Console.Out.Flush();
+                    // Parse the raw JSON to determine message type
+                    using var jsonDoc = JsonDocument.Parse(line);
+                    var root = jsonDoc.RootElement;
+                    
+                    object? response = null;
+                    
+                    if (root.TryGetProperty("Hello", out var helloElement))
+                    {
+                        WriteLog("Received Hello message");
+                        response = HandleHello();
+                    }
+                    else if (root.TryGetProperty("Call", out var callElement))
+                    {
+                        WriteLog("Received Call message");
+                        response = await HandleCall(callElement);
+                    }
+                    else
+                    {
+                        WriteLog($"Unknown message format: {line}");
+                        response = CreateErrorResponse($"Unknown message format");
+                    }
+                    
+                    if (response != null)
+                    {
+                        var responseJson = JsonSerializer.Serialize(response);
+                        Console.WriteLine(responseJson);
+                        Console.Out.Flush(); // Immediate flush is critical
+                        WriteLog($"Response sent: {responseJson}");
+                    }
+                }
+                catch (JsonException ex)
+                {
+                    WriteLog($"JSON error: {ex.Message}");
+                    var errorResponse = CreateErrorResponse($"JSON parsing error: {ex.Message}");
+                    var errorJson = JsonSerializer.Serialize(errorResponse);
+                    Console.WriteLine(errorJson);
+                    Console.Out.Flush();
+                }
+                catch (Exception ex)
+                {
+                    WriteLog($"Command error: {ex.Message}");
+                    var errorResponse = CreateErrorResponse($"Internal error: {ex.Message}");
+                    var errorJson = JsonSerializer.Serialize(errorResponse);
+                    Console.WriteLine(errorJson);
+                    Console.Out.Flush();
+                }
             }
             
-            WriteLog("Main processing completed, exiting");
+            WriteLog("Input stream ended, plugin finishing");
         }
         catch (Exception ex)
         {
             WriteLog($"Fatal error: {ex.Message}");
-            await Console.Error.WriteLineAsync($"Fatal plugin error: {ex.Message}");
+            WriteLog($"Stack trace: {ex.StackTrace}");
             Environment.Exit(1);
         }
         finally
         {
-            WriteLog("Plugin shutting down");
+            WriteLog("Plugin finished");
         }
+    }
+    
+    private object HandleHello()
+    {
+        WriteLog("Handling Hello request - sending Hello response");
+        
+        return new
+        {
+            Hello = new
+            {
+                protocol = "nu-plugin",
+                version = "0.104.0", // Match current nushell version
+                features = new object[] { } // Empty features array
+            }
+        };
+    }
+    
+    private async Task<object> HandleCall(JsonElement callElement)
+    {
+        WriteLog("Handling Call request");
+        
+        // Parse the call - it should be a 2-tuple [id, call_type]
+        if (callElement.ValueKind == JsonValueKind.Array)
+        {
+            var callArray = callElement.EnumerateArray().ToArray();
+            if (callArray.Length >= 2)
+            {
+                var callId = callArray[0].GetInt32();
+                
+                // Check if the second element is a string (simple call type) or object (complex call)
+                if (callArray[1].ValueKind == JsonValueKind.String)
+                {
+                    // Simple call types like "Signature", "Metadata"
+                    var callType = callArray[1].GetString();
+                    WriteLog($"Call ID: {callId}, Type: {callType}");
+                    
+                    var callResponse = callType switch
+                    {
+                        "Signature" => (object)new { Signature = _commandRegistry?.GetSignatures() ?? new List<object>() },
+                        "Metadata" => (object)new { Metadata = new { version = "1.0.0" } },
+                        _ => (object)new { Error = new { msg = $"Unknown call type: {callType}" } }
+                    };
+                    
+                    return new
+                    {
+                        CallResponse = new object[] { callId, callResponse }
+                    };
+                }
+                else if (callArray[1].ValueKind == JsonValueKind.Object)
+                {
+                    // Complex call like "Run"
+                    var callObj = callArray[1];
+                    if (callObj.TryGetProperty("Run", out var runElement))
+                    {
+                        WriteLog($"Call ID: {callId}, Type: Run");
+                        var runResponse = await HandleRunCall(runElement);
+                        return new
+                        {
+                            CallResponse = new object[] { callId, runResponse }
+                        };
+                    }
+                    else
+                    {
+                        WriteLog($"Call ID: {callId}, Unknown complex call type");
+                        return new
+                        {
+                            CallResponse = new object[] { callId, new { Error = new { msg = "Unknown complex call type" } } }
+                        };
+                    }
+                }
+            }
+        }
+        
+        return CreateErrorResponse("Invalid call format");
     }
 
     private PluginResponse HandleSignature()
     {
         WriteLog("Handling signature request");
+        
+        var signatures = _commandRegistry.GetSignatures();
+        
         return new PluginResponse
         {
-            Type = "Signature",
-            Value = new List<CommandSignature>
+            Type = "Signature", 
+            Value = signatures
+        };
+    }
+
+    private object HandleMetadata()
+    {
+        WriteLog("Handling metadata request");
+        
+        return new
+        {
+            Metadata = new
             {
-                new() { Name = "dn new", Description = "Create a new .NET object", Category = "experimental" },
-                new() { Name = "dn call", Description = "Call a method on a .NET object", Category = "experimental" },
-                new() { Name = "dn get", Description = "Get a property or field from a .NET object", Category = "experimental" },
-                new() { Name = "dn set", Description = "Set a property or field on a .NET object", Category = "experimental" },
-                new() { Name = "dn load-assembly", Description = "Load a .NET assembly", Category = "experimental" },
-                new() { Name = "dn assemblies", Description = "List loaded assemblies", Category = "experimental" },
-                new() { Name = "dn types", Description = "List types in an assembly", Category = "experimental" },
-                new() { Name = "dn members", Description = "List members of a type", Category = "experimental" }
+                version = "1.0.0" // Plugin version
             }
         };
     }
@@ -228,6 +300,109 @@ public class PluginHost
         }
     }
 
+    private async Task<object> HandleRunCall(JsonElement runElement)
+    {
+        WriteLog("Handling Run call");
+        
+        try
+        {
+            if (!_initializationSucceeded || _commandRegistry == null)
+            {
+                WriteLog("Initialization not successful, returning error");
+                return new { Error = new { msg = "Plugin initialization failed. Please check your .NET installation." } };
+            }
+
+            // Parse the run call structure
+            if (!runElement.TryGetProperty("name", out var nameElement) ||
+                !runElement.TryGetProperty("call", out var callElement))
+            {
+                WriteLog("Missing name or call in run element");
+                return new { Error = new { msg = "Invalid run call format" } };
+            }
+
+            var commandName = nameElement.GetString();
+            WriteLog($"Executing command: {commandName}");
+
+            // Create a simple PluginCall from the JSON
+            var pluginCall = new PluginCall
+            {
+                Head = new CommandHead { Name = commandName ?? "" },
+                Positional = new List<PluginValue>(),
+                Named = new Dictionary<string, PluginValue>(),
+                Input = null
+            };
+
+            // Parse positional arguments if any
+            if (callElement.TryGetProperty("positional", out var positionalElement) && 
+                positionalElement.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var item in positionalElement.EnumerateArray())
+                {
+                    pluginCall.Positional.Add(JsonElementToPluginValue(item));
+                }
+            }
+
+            // Parse named arguments if any
+            if (callElement.TryGetProperty("named", out var namedElement) && 
+                namedElement.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var item in namedElement.EnumerateArray())
+                {
+                    if (item.ValueKind == JsonValueKind.Array)
+                    {
+                        var namedArray = item.EnumerateArray().ToArray();
+                        if (namedArray.Length >= 2)
+                        {
+                            var key = namedArray[0].GetString();
+                            if (key != null)
+                            {
+                                pluginCall.Named[key] = JsonElementToPluginValue(namedArray[1]);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Execute the command
+            var result = await _commandRegistry.ExecuteAsync(commandName ?? "", pluginCall);
+            WriteLog("Command executed successfully");
+            
+            return new { PipelineData = new { Value = ConvertPluginValueToNushellValue(result) } };
+        }
+        catch (Exception ex)
+        {
+            WriteLog($"Error executing run call: {ex.Message}");
+            return new { Error = new { msg = ex.Message } };
+        }
+    }
+    
+    private PluginValue JsonElementToPluginValue(JsonElement element)
+    {
+        // Simple conversion - you might want to expand this
+        return element.ValueKind switch
+        {
+            JsonValueKind.String => new PluginValue { Type = PluginValueType.String, Value = element.GetString() },
+            JsonValueKind.Number => new PluginValue { Type = PluginValueType.Int, Value = element.GetInt64() },
+            JsonValueKind.True => new PluginValue { Type = PluginValueType.Bool, Value = true },
+            JsonValueKind.False => new PluginValue { Type = PluginValueType.Bool, Value = false },
+            JsonValueKind.Null => new PluginValue { Type = PluginValueType.Nothing, Value = null },
+            _ => new PluginValue { Type = PluginValueType.String, Value = element.ToString() }
+        };
+    }
+    
+    private object ConvertPluginValueToNushellValue(PluginValue value)
+    {
+        // Convert PluginValue back to nushell-compatible format
+        return value.Type switch
+        {
+            PluginValueType.String => new { String = new { val = value.Value, span = new { start = 0, end = 0 } } },
+            PluginValueType.Int => new { Int = new { val = value.Value, span = new { start = 0, end = 0 } } },
+            PluginValueType.Bool => new { Bool = new { val = value.Value, span = new { start = 0, end = 0 } } },
+            PluginValueType.List => new { List = new { vals = value.Value, span = new { start = 0, end = 0 } } },
+            _ => new { String = new { val = value.Value?.ToString() ?? "", span = new { start = 0, end = 0 } } }
+        };
+    }
+
     private static PluginResponse CreateErrorResponse(string message)
     {
         return new PluginResponse
@@ -243,8 +418,19 @@ public class PluginHost
 
 public class PluginRequest
 {
-    public string Type { get; set; } = "";
+    public string? Type { get; set; }
+    public object? Value { get; set; }
     public PluginCall? Call { get; set; }
+    
+    // For Hello message
+    public HelloMessage? Hello { get; set; }
+}
+
+public class HelloMessage
+{
+    public string Protocol { get; set; } = "";
+    public string Version { get; set; } = "";
+    public object[] Features { get; set; } = Array.Empty<object>();
 }
 
 public class PluginCall
