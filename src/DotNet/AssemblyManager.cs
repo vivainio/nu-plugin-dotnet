@@ -42,10 +42,23 @@ public class AssemblyManager
         if (_loadedAssemblies.Values.FirstOrDefault(a => a.GetName().Name == assemblyName) is Assembly existing)
             return existing;
 
+        // Check if assembly is already loaded in the current domain to avoid conflicts
+        var domainAssembly = AppDomain.CurrentDomain.GetAssemblies()
+            .FirstOrDefault(a => a.GetName().Name?.Equals(assemblyName, StringComparison.OrdinalIgnoreCase) == true);
+        
+        if (domainAssembly != null)
+        {
+            // Don't cache domain assemblies in our dictionary to avoid location conflicts
+            return domainAssembly;
+        }
+
         try
         {
             var assembly = _loadContext.LoadFromAssemblyName(new AssemblyName(assemblyName));
-            _loadedAssemblies[assembly.Location] = assembly;
+            if (!string.IsNullOrEmpty(assembly.Location))
+            {
+                _loadedAssemblies[assembly.Location] = assembly;
+            }
             return assembly;
         }
         catch (Exception ex)
@@ -177,23 +190,36 @@ public class AssemblyManager
         }
     }
 
+    private static readonly HashSet<string> _currentlyResolving = new();
+    
     private Assembly? OnAssemblyResolving(AssemblyLoadContext context, AssemblyName assemblyName)
     {
-        // Try to resolve from already loaded assemblies
-        var loaded = _loadedAssemblies.Values.FirstOrDefault(a => 
-            a.GetName().Name?.Equals(assemblyName.Name, StringComparison.OrdinalIgnoreCase) == true);
+        var assemblyFullName = assemblyName.FullName;
         
-        if (loaded != null)
-            return loaded;
-
-        // Try to load from the runtime
+        // Prevent recursive resolution attempts
+        if (_currentlyResolving.Contains(assemblyFullName))
+            return null;
+        
         try
         {
-            return context.LoadFromAssemblyName(assemblyName);
+            _currentlyResolving.Add(assemblyFullName);
+            
+            // Try to resolve from already loaded assemblies
+            var loaded = _loadedAssemblies.Values.FirstOrDefault(a => 
+                a.GetName().Name?.Equals(assemblyName.Name, StringComparison.OrdinalIgnoreCase) == true);
+            
+            if (loaded != null)
+                return loaded;
+
+            // Try to find in AppDomain's loaded assemblies instead of triggering another load
+            var domainAssembly = AppDomain.CurrentDomain.GetAssemblies()
+                .FirstOrDefault(a => a.GetName().Name?.Equals(assemblyName.Name, StringComparison.OrdinalIgnoreCase) == true);
+            
+            return domainAssembly;
         }
-        catch
+        finally
         {
-            return null;
+            _currentlyResolving.Remove(assemblyFullName);
         }
     }
 

@@ -24,16 +24,75 @@ public abstract class BaseCommand
 
     protected PluginValue CreateError(string message, Exception? exception = null)
     {
-        return new PluginValue
+        try
         {
-            Type = PluginValueType.Error,
-            Value = new PluginError
+            return new PluginValue
             {
-                Message = message,
-                StackTrace = exception?.StackTrace,
-                Type = exception?.GetType().FullName
-            }
-        };
+                Type = PluginValueType.Error,
+                Value = new PluginError
+                {
+                    Message = message,
+                    StackTrace = GetSafeStackTrace(exception),
+                    Type = GetSafeTypeName(exception)
+                }
+            };
+        }
+        catch (StackOverflowException)
+        {
+            // In case of stack overflow during error creation, return minimal error
+            return new PluginValue
+            {
+                Type = PluginValueType.Error,
+                Value = new PluginError
+                {
+                    Message = "Stack overflow detected: " + message,
+                    StackTrace = "Stack overflow prevented full trace",
+                    Type = "StackOverflowException"
+                }
+            };
+        }
+        catch (Exception errorEx)
+        {
+            // Fallback for any other errors during error creation
+            return new PluginValue
+            {
+                Type = PluginValueType.Error,
+                Value = new PluginError
+                {
+                    Message = $"Error creating error report: {errorEx.Message} | Original: {message}",
+                    StackTrace = null,
+                    Type = errorEx.GetType().Name
+                }
+            };
+        }
+    }
+
+    private static string? GetSafeStackTrace(Exception? exception)
+    {
+        if (exception == null) return null;
+        
+        try
+        {
+            return exception.StackTrace;
+        }
+        catch
+        {
+            return "Stack trace unavailable due to error";
+        }
+    }
+
+    private static string? GetSafeTypeName(Exception? exception)
+    {
+        if (exception == null) return null;
+        
+        try
+        {
+            return exception.GetType().FullName;
+        }
+        catch
+        {
+            return "Exception type unavailable";
+        }
     }
 
     protected async Task<object?> UnwrapAsyncResult(object? result)

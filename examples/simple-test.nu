@@ -137,4 +137,33 @@ print "✅ Error handling works properly"
 print "✅ All 8 'dn' commands are functional"
 
 print "\n🎉 Plugin with 'dn' commands is ready for use!"
-print "Register with: plugin add ./bin/Release-new/nu_plugin_dotnet.exe" 
+print "Register with: plugin add ./bin/Release-new/nu_plugin_dotnet.exe"
+
+# Simple binary test
+
+print "\nSimple Binary Test"
+print "=================="
+
+# Load crypto assembly
+dn load-assembly "System.Security.Cryptography"
+
+# Create hasher
+let $hasher = "System.Security.Cryptography.SHA256" | dn call "Create"
+print $"Hasher: ($hasher)"
+
+# Test with a very simple binary value
+print "Creating simple binary data..."
+let $simple_binary = [72, 101, 108, 108, 111] # "Hello" as bytes
+
+# Try calling ComputeHash - this should work now
+print "Attempting hash computation..."
+try {
+    let $result = $hasher | dn call "ComputeHash" $simple_binary  
+    print $"Success! Hash computed: ($result)"
+} catch { |e|
+    print $"Failed: ($e.msg)"
+}
+
+# Cleanup
+$hasher | dn call "Dispose"
+print "Done" 

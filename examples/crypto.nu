@@ -215,19 +215,50 @@ let $sha512HashSize = $sha512 | dn get "HashSize"
 print $"SHA512 Hash Size: ($sha512HashSize) bits"
 $sha512 | dn call "Dispose"
 
-print "\n=== Testing Some Hash Computation ==="
+print "\n=== Testing Hash Computation with Nushell Bytes ==="
 
-# Create test data
-let $testData = "Hello, Cryptography!" | encode utf8
+# Create test data as nushell bytes object
+let $testString = "Hello, Cryptography!"
+let $testData = $testString | encode utf8
 let $dataLength = ($testData | length)
-print ("Test data: 'Hello, Cryptography!' " + ($dataLength | into string) + " bytes")
+print $"Test data: '($testString)' encoded as ($dataLength) bytes"
+print $"Bytes data type: ($testData | describe)"
+print $"First few bytes: ($testData | first 8 | each { |byte| $"0x($byte | fmt -p 'x')" } | str join ' ')"
 
-# Create SHA256 hasher and compute hash
-let $sha256_hasher = "System.Security.Cryptography.SHA256" | dn call "Create"
-let $hashResult = $sha256_hasher | dn call "ComputeHash" $testData
-print $"SHA256 hash computed: ($hashResult | length) bytes"
-print $"First few hash bytes: ($hashResult | first 8)"
-$sha256_hasher | dn call "Dispose"
+print "\n🔐 Computing SHA256 hash..."
+try {
+    # Create SHA256 hasher and compute hash using nushell bytes
+    let $sha256_hasher = "System.Security.Cryptography.SHA256" | dn call "Create"
+    let $hashResult = $sha256_hasher | dn call "ComputeHash" $testData
+    print $"✅ SHA256 hash computed successfully: ($hashResult | length) bytes"
+    print $"Hash bytes: ($hashResult | each { |byte| $"0x($byte | fmt -p 'x')" } | str join ' ')"
+    
+    # Convert hash to hex string representation  
+    let $hexHash = ($hashResult | each { |byte| $"($byte | fmt -p 'x' | fill -a right -c '0' -w 2)" } | str join '')
+    print $"SHA256 hex: ($hexHash)"
+    
+    $sha256_hasher | dn call "Dispose"
+    print "✅ SHA256 hasher disposed"
+} catch { |e|
+    print $"❌ Hash computation failed: ($e.msg)"
+}
+
+print "\n🔐 Computing MD5 hash..."
+try {
+    # Create MD5 hasher and compute hash
+    let $md5_hasher = "System.Security.Cryptography.MD5" | dn call "Create"
+    let $md5Result = $md5_hasher | dn call "ComputeHash" $testData
+    print $"✅ MD5 hash computed successfully: ($md5Result | length) bytes"
+    
+    # Convert hash to hex string representation
+    let $md5Hex = ($md5Result | each { |byte| $"($byte | fmt -p 'x' | fill -a right -c '0' -w 2)" } | str join '')
+    print $"MD5 hex: ($md5Hex)"
+    
+    $md5_hasher | dn call "Dispose"
+    print "✅ MD5 hasher disposed"
+} catch { |e|
+    print $"❌ MD5 computation failed: ($e.msg)"
+}
 
 print "\n=== Cryptography Demo Complete ==="
 print "✅ Successfully demonstrated System.Security.Cryptography access"
