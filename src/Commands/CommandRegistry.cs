@@ -29,7 +29,8 @@ public class CommandRegistry
             ["dn load-assembly"] = new DotNetLoadAssemblyCommand(_objectManager, _assemblyManager, _valueConverter),
             ["dn assemblies"] = new DotNetAssembliesCommand(_objectManager, _assemblyManager, _valueConverter),
             ["dn types"] = new DotNetTypesCommand(_objectManager, _assemblyManager, _valueConverter),
-            ["dn members"] = new DotNetMembersCommand(_objectManager, _assemblyManager, _valueConverter)
+            ["dn members"] = new DotNetMembersCommand(_objectManager, _assemblyManager, _valueConverter),
+            ["dn obj"] = new DotNetObjCommand(_objectManager, _assemblyManager, _valueConverter)
         };
     }
 
@@ -208,6 +209,7 @@ public class CommandRegistry
             "dn assemblies" => "List loaded assemblies",
             "dn types" => "List types in an assembly",
             "dn members" => "List members of a type",
+            "dn obj" => "Convert .NET objects to nushell native data structures",
             _ => "Unknown command"
         };
     }

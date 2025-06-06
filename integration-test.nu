@@ -145,6 +145,49 @@ let $results = [
     } else {
         error make { msg: $"Nested operations failed: year=($start_year), month=($end_month), days=($total_days), equal=($guids_equal)" }
     }
+}),
+
+# Test 13: Test Object to Nushell Conversion
+(test_command "Object to Nushell Conversion" {
+    # Test converting complex .NET objects to nushell native structures
+    
+    # Test 1: Convert Version object to nushell record 
+    let $version = "System.Version" | dn call "Parse" "1.2.3.4"
+    let $version_record = $version | dn obj
+    
+    # Test 2: Convert GUID object to nushell record
+    let $guid = "System.Guid" | dn call "NewGuid"
+    let $guid_record = $guid | dn obj
+    
+    # Test 3: Convert type info to nushell record
+    let $version_type_info = "System.Version" | dn obj
+    let $guid_type_info = "System.Guid" | dn obj
+    
+    # Test 4: Convert simple string to demonstrate basic conversion
+    let $string_obj = "Hello World" | dn obj
+    
+    # Verify conversions work and produce records with expected fields
+    let $version_has_major = ($version_record | get major) == 1
+    let $version_has_minor = ($version_record | get minor) == 2
+    let $version_has_type = ($version_record | get __type__) == "Version"
+    
+    let $guid_has_type = ($guid_record | get __type__) == "Guid"
+    
+    let $version_type_has_name = ($version_type_info | get name) == "Version"
+    let $version_type_has_methods = ($version_type_info | get methods | length) > 5
+    let $version_type_has_properties = ($version_type_info | get properties | length) > 3
+    
+    let $guid_type_has_name = ($guid_type_info | get name) == "Guid"
+    let $guid_type_is_struct = ($guid_type_info | get is_struct) == true
+    
+    let $string_converted = $string_obj == "Hello World"
+    
+    # Verify all conversions successful
+    if $version_has_major and $version_has_minor and $version_has_type and $guid_has_type and $version_type_has_name and $version_type_has_methods and $version_type_has_properties and $guid_type_has_name and $guid_type_is_struct and $string_converted {
+        $"Object conversion: Version=✓, GUID=✓, TypeInfo=✓, String=✓"
+    } else {
+        error make { msg: $"Object conversion failed: some conversions did not produce expected results" }
+    }
 })
 
 ]
