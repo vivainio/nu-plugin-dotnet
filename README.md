@@ -4,6 +4,8 @@ A **fully functional** nushell plugin that brings the complete .NET ecosystem to
 
 🎉 **Now with 100% working functionality** - all commands operational with comprehensive integration tests!
 
+**Repository**: [github.com/vivainio/nu-plugin-dotnet](https://github.com/vivainio/nu-plugin-dotnet)
+
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](#building-from-source)
 [![Tests](https://img.shields.io/badge/tests-100%25_passing-brightgreen)](#testing)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](#license)
@@ -63,13 +65,13 @@ All commands work perfectly with **100% success rate**! 🎉
 
 **One-liner installation using nushell:**
 ```nushell
-http get https://raw.githubusercontent.com/your-username/nu-plugin-dotnet/main/install.nu | save install.nu; nu install.nu
+http get https://raw.githubusercontent.com/vivainio/nu-plugin-dotnet/main/install.nu | save install.nu; nu install.nu
 ```
 
 **Or download and run:**
 ```nushell
 # Download installer
-curl -O https://raw.githubusercontent.com/your-username/nu-plugin-dotnet/main/install.nu
+curl -O https://raw.githubusercontent.com/vivainio/nu-plugin-dotnet/main/install.nu
 
 # Run installer
 nu install.nu
@@ -92,20 +94,20 @@ nu install.nu --path ~/.local/nu-plugins
    
    **Windows:**
    ```powershell
-   curl -LO https://github.com/your-username/nu-plugin-dotnet/releases/latest/download/nu-plugin-dotnet-win-x64.zip
+   curl -LO https://github.com/vivainio/nu-plugin-dotnet/releases/latest/download/nu-plugin-dotnet-win-x64.zip
    Expand-Archive nu-plugin-dotnet-win-x64.zip
    ```
    
    **macOS:**
    ```bash
-   curl -LO https://github.com/your-username/nu-plugin-dotnet/releases/latest/download/nu-plugin-dotnet-osx-x64.tar.gz
+   curl -LO https://github.com/vivainio/nu-plugin-dotnet/releases/latest/download/nu-plugin-dotnet-osx-x64.tar.gz
    tar -xzf nu-plugin-dotnet-osx-x64.tar.gz
    chmod +x nu_plugin_dotnet
    ```
    
    **Linux:**
    ```bash
-   curl -LO https://github.com/your-username/nu-plugin-dotnet/releases/latest/download/nu-plugin-dotnet-linux-x64.tar.gz
+   curl -LO https://github.com/vivainio/nu-plugin-dotnet/releases/latest/download/nu-plugin-dotnet-linux-x64.tar.gz
    tar -xzf nu-plugin-dotnet-linux-x64.tar.gz
    chmod +x nu_plugin_dotnet
    ```
@@ -120,7 +122,7 @@ nu install.nu --path ~/.local/nu-plugins
 
 1. **Clone and build the plugin:**
    ```bash
-   git clone https://github.com/your-username/nu-plugin-dotnet.git
+   git clone https://github.com/vivainio/nu-plugin-dotnet.git
    cd nu-plugin-dotnet
    dotnet build -c Release
    ```
@@ -815,7 +817,7 @@ $myObj | dn call "MyMethod" "parameter"
 
 ```bash
 # Clone repository
-git clone https://github.com/your-username/nu-plugin-dotnet.git
+git clone https://github.com/vivainio/nu-plugin-dotnet.git
 cd nu-plugin-dotnet
 
 # Restore dependencies
