@@ -512,7 +512,7 @@ public class PluginHost
             PluginValueType.List => new { List = new { vals = value.AsList().Select(ConvertPluginValueToNushellValue).ToArray(), span } },
             PluginValueType.Record => new { Record = new { val = value.AsRecord().ToDictionary(kvp => kvp.Key, kvp => ConvertPluginValueToNushellValue(kvp.Value)), span } },
             PluginValueType.Custom => new { String = new { val = $"__CUSTOM_OBJECT__{value.GetObjectId()}__", span } }, // Encode custom objects as special strings
-            PluginValueType.Nothing => new { Nothing = new { } }, // Return empty Nothing object for void type
+            PluginValueType.Nothing => new { Nothing = new { span } }, // Return Nothing object with span for void type
             PluginValueType.Error => throw new Exception(((PluginError)value.Value!).Message), // Convert error to exception so nushell can handle it properly
             _ => new { String = new { val = value.Value?.ToString() ?? "", span } }
         };
