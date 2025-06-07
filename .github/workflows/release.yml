@@ -107,14 +107,39 @@ jobs:
     - name: Download all artifacts
       uses: actions/download-artifact@v4
     
+    - name: Check if release exists
+      id: check_release
+      run: |
+        TAG_NAME="${{ github.event.inputs.version || github.ref_name }}"
+        if gh release view "$TAG_NAME" >/dev/null 2>&1; then
+          echo "release_exists=true" >> $GITHUB_OUTPUT
+          echo "Release $TAG_NAME already exists"
+        else
+          echo "release_exists=false" >> $GITHUB_OUTPUT
+          echo "Release $TAG_NAME does not exist"
+        fi
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Delete existing release if needed
+      if: steps.check_release.outputs.release_exists == 'true'
+      run: |
+        TAG_NAME="${{ github.event.inputs.version || github.ref_name }}"
+        echo "Deleting existing release $TAG_NAME"
+        gh release delete "$TAG_NAME" --yes || true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
     - name: Create Release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       with:
         tag_name: ${{ github.event.inputs.version || github.ref_name }}
         name: Release ${{ github.event.inputs.version || github.ref_name }}
         draft: false
         prerelease: ${{ github.event.inputs.prerelease || contains(github.ref_name, '-') }}
         generate_release_notes: true
+        make_latest: true
+        fail_on_unmatched_files: true
         files: |
           **/nu-plugin-dotnet-*.*
         body: |
