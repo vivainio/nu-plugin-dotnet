@@ -26,20 +26,21 @@ def main [
     # Detect platform and architecture
     let os_info = sys host
     let os_name = $os_info.name | str downcase
-    let arch = $os_info.cpu | get 0 | get name
+    
+    # Simple architecture detection - default to x64 for most cases
+    let arch = ($env.PROCESSOR_ARCHITECTURE? | default "AMD64" | str downcase)
+    let is_arm = ($arch | str contains "arm")
+    let arch_suffix = if $is_arm { "arm64" } else { "x64" }
 
     let platform_info = match $os_name {
         $name if ($name | str contains "windows") => {
-            let arch_name = if ($arch | str contains "x86_64" or $arch | str contains "amd64") { "x64" } else { "arm64" }
-            {platform: $"win-($arch_name)", ext: "zip", executable: "nu_plugin_dotnet.exe"}
+            {platform: $"win-($arch_suffix)", ext: "zip", executable: "nu_plugin_dotnet.exe"}
         }
         $name if ($name | str contains "linux") => {
-            let arch_name = if ($arch | str contains "x86_64" or $arch | str contains "amd64") { "x64" } else { "arm64" }
-            {platform: $"linux-($arch_name)", ext: "tar.gz", executable: "nu_plugin_dotnet"}
+            {platform: $"linux-($arch_suffix)", ext: "tar.gz", executable: "nu_plugin_dotnet"}
         }
         $name if ($name | str contains "darwin" or $name | str contains "macos") => {
-            let arch_name = if ($arch | str contains "x86_64" or $arch | str contains "amd64") { "x64" } else { "arm64" }
-            {platform: $"osx-($arch_name)", ext: "tar.gz", executable: "nu_plugin_dotnet"}
+            {platform: $"osx-($arch_suffix)", ext: "tar.gz", executable: "nu_plugin_dotnet"}
         }
         _ => {
             error make { msg: $"❌ Unsupported platform: ($os_name)" }
@@ -54,7 +55,7 @@ def main [
 
     # Get release information
     print "📡 Fetching release information..."
-    let repo = "your-username/nu-plugin-dotnet"  # Replace with actual repo
+    let repo = "vivainio/nu-plugin-dotnet"
     let api_url = if $version == "latest" {
         $"https://api.github.com/repos/($repo)/releases/latest"
     } else {
@@ -121,7 +122,7 @@ def main [
     let plugin_path = $extract_path | path join $executable_name
 
     # Make executable on Unix systems
-    if ($os_name | str contains "linux" or $os_name | str contains "darwin") {
+    if (($os_name | str contains "linux") or ($os_name | str contains "darwin")) {
         ^chmod +x $plugin_path
     }
 
