@@ -322,7 +322,7 @@ print $"Invariant Culture: ($invariantCulture | dn get "Name")"
 print "\n20. Uri Objects"
 print "---------------"
 
-# URI objects
+# URI objects 
 let $uri1 = dn new "System.Uri" --args ["https://www.example.com/path?query=value"]
 let $uri2 = dn new "System.Uri" --args ["https://www.example.com", "relative/path"]
 
@@ -420,4 +420,7 @@ print ""
 print "📚 For more examples, see:"
 print "   • README.md - Basic usage examples"
 print "   • examples/demo.nu - Practical demonstrations"
-print "   • examples/integration-test.nu - Testing patterns" 
+print "   • examples/integration-test.nu - Testing patterns"
+
+dn new "System.Collections.ArrayList"
+dn new "System.Collections.Hashtable" 
