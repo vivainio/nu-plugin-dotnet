@@ -15,12 +15,13 @@ public class PluginHost
     private readonly AssemblyManager? _assemblyManager;
     private readonly ValueConverter? _valueConverter;
     private readonly bool _initializationSucceeded = false;
-    private readonly string _logFile;
-
+    private readonly string? _logFile;
+    private readonly bool _debugEnabled;
 
     public PluginHost()
     {
-        _logFile = Path.Combine(Path.GetTempPath(), "nu-plugin-dotnet-debug.log");
+        _debugEnabled = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("NU_PLUGIN_DOTNET_DEBUG"));
+        _logFile = _debugEnabled ? Path.Combine(Path.GetTempPath(), "nu-plugin-dotnet-debug.log") : null;
         
         try
         {
@@ -52,6 +53,9 @@ public class PluginHost
 
     private void WriteLog(string message)
     {
+        if (!_debugEnabled || _logFile == null)
+            return;
+            
         try
         {
             File.AppendAllText(_logFile, $"[{DateTime.Now:HH:mm:ss.fff}] {message}\n");

@@ -230,6 +230,23 @@ public enum PluginValueType
 
 public class PluginValueConverter : JsonConverter<PluginValue>
 {
+    private static readonly bool _debugEnabled = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("NU_PLUGIN_DOTNET_DEBUG"));
+    private static readonly string? _logFile = _debugEnabled ? Path.Combine(Path.GetTempPath(), "nu-plugin-dotnet.log") : null;
+    
+    private static void WriteDebugLog(string message)
+    {
+        if (!_debugEnabled || _logFile == null)
+            return;
+            
+        try
+        {
+            File.AppendAllText(_logFile, $"[{DateTime.Now:HH:mm:ss.fff}] {message}\n");
+        }
+        catch
+        {
+            // Ignore logging errors to avoid causing more issues
+        }
+    }
     private static T? DeserializeWithLogging<T>(string json, JsonSerializerOptions options, string typeName)
     {
         try
@@ -239,16 +256,9 @@ public class PluginValueConverter : JsonConverter<PluginValue>
         catch (Exception ex)
         {
             // Log the error with stack trace
-            try
-            {
-                File.AppendAllText("C:\\temp\\nu-plugin-dotnet.log", 
-                    $"[{DateTime.Now:HH:mm:ss.fff}] DeserializeWithLogging<{typeName}> error: {ex.Message}\n");
-                File.AppendAllText("C:\\temp\\nu-plugin-dotnet.log", 
-                    $"[{DateTime.Now:HH:mm:ss.fff}] Stack trace: {ex.StackTrace}\n");
-                File.AppendAllText("C:\\temp\\nu-plugin-dotnet.log", 
-                    $"[{DateTime.Now:HH:mm:ss.fff}] JSON: {json}\n");
-            }
-            catch { /* Ignore logging errors */ }
+            WriteDebugLog($"DeserializeWithLogging<{typeName}> error: {ex.Message}");
+            WriteDebugLog($"Stack trace: {ex.StackTrace}");
+            WriteDebugLog($"JSON: {json}");
             
             throw; // Re-throw the original exception
         }
@@ -285,16 +295,9 @@ public class PluginValueConverter : JsonConverter<PluginValue>
         catch (Exception ex)
         {
             // Log the error with stack trace
-            try
-            {
-                File.AppendAllText("C:\\temp\\nu-plugin-dotnet.log", 
-                    $"[{DateTime.Now:HH:mm:ss.fff}] ParseBinaryValueInConverter error: {ex.Message}\n");
-                File.AppendAllText("C:\\temp\\nu-plugin-dotnet.log", 
-                    $"[{DateTime.Now:HH:mm:ss.fff}] Stack trace: {ex.StackTrace}\n");
-                File.AppendAllText("C:\\temp\\nu-plugin-dotnet.log", 
-                    $"[{DateTime.Now:HH:mm:ss.fff}] ValueKind: {valueElement.ValueKind}\n");
-            }
-            catch { /* Ignore logging errors */ }
+            WriteDebugLog($"ParseBinaryValueInConverter error: {ex.Message}");
+            WriteDebugLog($"Stack trace: {ex.StackTrace}");
+            WriteDebugLog($"ValueKind: {valueElement.ValueKind}");
             
             // Return empty array as fallback
             return new byte[0];
@@ -360,20 +363,11 @@ public class PluginValueConverter : JsonConverter<PluginValue>
         catch (Exception ex)
         {
             // Log the error with full stack trace
-            try
-            {
-                File.AppendAllText("C:\\temp\\nu-plugin-dotnet.log", 
-                    $"[{DateTime.Now:HH:mm:ss.fff}] PluginValueConverter.Read error: {ex.Message}\n");
-                File.AppendAllText("C:\\temp\\nu-plugin-dotnet.log", 
-                    $"[{DateTime.Now:HH:mm:ss.fff}] Exception type: {ex.GetType().FullName}\n");
-                File.AppendAllText("C:\\temp\\nu-plugin-dotnet.log", 
-                    $"[{DateTime.Now:HH:mm:ss.fff}] Stack trace: {ex.StackTrace}\n");
-                File.AppendAllText("C:\\temp\\nu-plugin-dotnet.log", 
-                    $"[{DateTime.Now:HH:mm:ss.fff}] Inner exception: {ex.InnerException?.Message ?? "None"}\n");
-                File.AppendAllText("C:\\temp\\nu-plugin-dotnet.log", 
-                    $"[{DateTime.Now:HH:mm:ss.fff}] Inner exception stack trace: {ex.InnerException?.StackTrace ?? "None"}\n");
-            }
-            catch { /* Ignore logging errors */ }
+            WriteDebugLog($"PluginValueConverter.Read error: {ex.Message}");
+            WriteDebugLog($"Exception type: {ex.GetType().FullName}");
+            WriteDebugLog($"Stack trace: {ex.StackTrace}");
+            WriteDebugLog($"Inner exception: {ex.InnerException?.Message ?? "None"}");
+            WriteDebugLog($"Inner exception stack trace: {ex.InnerException?.StackTrace ?? "None"}");
             
             throw; // Re-throw the original exception
         }
