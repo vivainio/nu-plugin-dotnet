@@ -35,6 +35,20 @@
     <PackageReference Include="Microsoft.Management.Infrastructure" Version="3.0.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="NuPluginDotNet.Protocol\NuPluginDotNet.Protocol.csproj" />
+  </ItemGroup>
 
+  <ItemGroup>
+    <Compile Remove="examples\**" />
+    <EmbeddedResource Remove="examples\**" />
+    <None Remove="examples\**" />
+    <Compile Remove="NuPluginDotNet.Protocol\**" />
+    <EmbeddedResource Remove="NuPluginDotNet.Protocol\**" />
+    <None Remove="NuPluginDotNet.Protocol\**" />
+    <Compile Remove="TestLibrary\**" />
+    <EmbeddedResource Remove="TestLibrary\**" />
+    <None Remove="TestLibrary\**" />
+  </ItemGroup>
 
 </Project> 
