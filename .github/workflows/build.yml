@@ -132,22 +132,22 @@ jobs:
     - name: Run integration tests
       run: |
         echo "Running integration tests..."
-        if [ -f "integration-test.nu" ]; then
-          echo "Found integration-test.nu, running..."
-          timeout 30s nu integration-test.nu || echo "Integration test completed with timeout"
+        if [ -f "examples/integration-test.nu" ]; then
+          echo "Found examples/integration-test.nu, running..."
+          timeout 30s nu examples/integration-test.nu || echo "Integration test completed with timeout"
         else
-          echo "No integration-test.nu found, skipping integration tests"
+          echo "No examples/integration-test.nu found, skipping integration tests"
         fi
       continue-on-error: true
     
     - name: Run simple tests
       run: |
         echo "Running simple tests..."
-        if [ -f "simple-test.nu" ]; then
-          echo "Found simple-test.nu, running..."
-          timeout 30s nu simple-test.nu || echo "Simple test completed with timeout"
+        if [ -f "examples/simple-test.nu" ]; then
+          echo "Found examples/simple-test.nu, running..."
+          timeout 30s nu examples/simple-test.nu || echo "Simple test completed with timeout"
         else
-          echo "No simple-test.nu found, skipping simple tests"
+          echo "No examples/simple-test.nu found, skipping simple tests"
         fi
       continue-on-error: true
 
