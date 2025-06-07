@@ -17,6 +17,11 @@ on:
         default: false
         type: boolean
 
+permissions:
+  contents: write
+  actions: read
+  id-token: write
+
 jobs:
   build:
     name: Build for ${{ matrix.os }}
