@@ -7,11 +7,11 @@ A **fully functional** nushell plugin that brings the complete .NET ecosystem to
 **Repository**: [github.com/vivainio/nu-plugin-dotnet](https://github.com/vivainio/nu-plugin-dotnet)
 
 [![Latest Release](https://img.shields.io/badge/release-v0.0.8-brightgreen)](https://github.com/vivainio/nu-plugin-dotnet/releases/latest)
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](#building-from-source)
-[![Tests](https://img.shields.io/badge/tests-100%25_passing-brightgreen)](#testing)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](#license)
-[![.NET Version](https://img.shields.io/badge/.NET-8.0-purple)](#requirements)
-[![Nushell](https://img.shields.io/badge/nushell-0.97+-orange)](#requirements)
+[![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](#-building-from-source)
+[![Tests](https://img.shields.io/badge/tests-100%25_passing-brightgreen)](#-testing-your-setup)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](#-license)
+[![.NET Version](https://img.shields.io/badge/.NET-8.0-purple)](#-requirements)
+[![Nushell](https://img.shields.io/badge/nushell-0.97+-orange)](#-requirements)
 
 ## 🚀 Features
 

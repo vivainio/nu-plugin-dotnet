@@ -33,15 +33,17 @@ jobs:
         npm install -g markdown-link-check
     
     - name: Lint markdown files
+      continue-on-error: true
       run: |
         echo "🔍 Linting markdown files..."
-        markdownlint-cli2 "**/*.md" "#node_modules" "#.git" || true
+        markdownlint-cli2 "**/*.md" "#node_modules" "#.git" && echo "✅ Markdown linting passed" || echo "⚠️ Markdown linting found issues (not failing build)"
     
     - name: Check markdown links
+      continue-on-error: true
       run: |
         echo "🔗 Checking markdown links..."
         find . -name "*.md" -not -path "./.git/*" -not -path "./node_modules/*" | \
-        xargs -I {} markdown-link-check {} --config .github/markdown-link-check.json || true
+        xargs -I {} markdown-link-check {} --config .github/markdown-link-check.json && echo "✅ All markdown links are valid" || echo "⚠️ Some markdown links may be broken (not failing build)"
     
     - name: Validate README completeness
       run: |
