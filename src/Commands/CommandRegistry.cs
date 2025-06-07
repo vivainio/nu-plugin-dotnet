@@ -26,7 +26,7 @@ public class CommandRegistry
             ["dn call"] = new DotNetCallCommand(_objectManager, _assemblyManager, _valueConverter),
             ["dn get"] = new DotNetGetCommand(_objectManager, _assemblyManager, _valueConverter),
             ["dn set"] = new DotNetSetCommand(_objectManager, _assemblyManager, _valueConverter),
-            ["dn load-assembly"] = new DotNetLoadAssemblyCommand(_objectManager, _assemblyManager, _valueConverter),
+            ["dn load"] = new DotNetLoadAssemblyCommand(_objectManager, _assemblyManager, _valueConverter),
             ["dn assemblies"] = new DotNetAssembliesCommand(_objectManager, _assemblyManager, _valueConverter),
             ["dn types"] = new DotNetTypesCommand(_objectManager, _assemblyManager, _valueConverter),
             ["dn members"] = new DotNetMembersCommand(_objectManager, _assemblyManager, _valueConverter),
@@ -148,7 +148,7 @@ public class CommandRegistry
     {
         return commandName switch
         {
-            "dn load-assembly" => new object[]
+            "dn load" => new object[]
             {
                 new
                 {
@@ -206,7 +206,7 @@ public class CommandRegistry
                     desc = "Include instance members"
                 }
             },
-            "dn load-assembly" => new object[]
+            "dn load" => new object[]
             {
                 new
                 {
@@ -229,7 +229,7 @@ public class CommandRegistry
             "dn call" => "Call a method on a .NET object",
             "dn get" => "Get a property or field from a .NET object",
             "dn set" => "Set a property or field on a .NET object",
-            "dn load-assembly" => "Load a .NET assembly",
+            "dn load" => "Load a .NET assembly",
             "dn assemblies" => "List loaded assemblies",
             "dn types" => "List types in an assembly",
             "dn members" => "List members of a type",

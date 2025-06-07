@@ -19,6 +19,10 @@
     <!-- Optimization -->
     <DebugType>none</DebugType>
     <DebugSymbols>false</DebugSymbols>
+    
+    <!-- Fix duplicate assembly attributes -->
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
   </PropertyGroup>
 
   <ItemGroup>
