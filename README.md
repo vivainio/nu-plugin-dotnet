@@ -6,6 +6,7 @@ A **fully functional** nushell plugin that brings the complete .NET ecosystem to
 
 **Repository**: [github.com/vivainio/nu-plugin-dotnet](https://github.com/vivainio/nu-plugin-dotnet)
 
+[![Latest Release](https://img.shields.io/badge/release-v0.0.8-brightgreen)](https://github.com/vivainio/nu-plugin-dotnet/releases/latest)
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](#building-from-source)
 [![Tests](https://img.shields.io/badge/tests-100%25_passing-brightgreen)](#testing)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](#license)
@@ -16,6 +17,7 @@ A **fully functional** nushell plugin that brings the complete .NET ecosystem to
 
 ✨ **NEW: 100% Working Plugin with Full Integration** ✨
 
+- **🆕 User-Friendly Generic Syntax**: Write `Dictionary<string, int>` instead of `System.Collections.Generic.Dictionary\`2[System.String,System.Int32]`
 - **🏗️ Object Creation**: Instantiate any .NET class with constructor arguments
 - **🔧 Method Invocation**: Call instance and static methods with full type conversion
 - **📊 Property Access**: Get and set properties and fields on .NET objects
@@ -28,6 +30,7 @@ A **fully functional** nushell plugin that brings the complete .NET ecosystem to
 - **🛡️ Error Handling**: Detailed error messages with helpful suggestions
 - **🎯 No Conflicts**: Uses `dn` prefix to avoid conflicts with system commands
 - **🧪 Comprehensive Testing**: 100% test coverage with integration tests
+- **🔄 100% Backward Compatibility**: All existing code continues to work unchanged
 
 ## 🚀 Quick Start
 
@@ -58,6 +61,25 @@ dn assemblies | length                         # Number of loaded assemblies
 ```
 
 All commands work perfectly with **100% success rate**! 🎉
+
+### 🆕 **New in v0.0.8**: User-Friendly Generic Type Syntax
+
+No more complex .NET type names! Use familiar C#-like syntax:
+
+```nushell
+# ✨ NEW: User-friendly syntax
+let $list = dn new "List<string>"
+let $dict = dn new "Dictionary<string, int>"
+let $nested = dn new "Dictionary<string, List<int>>"
+
+# 🔄 OLD: Complex .NET syntax (still works!)
+let $list_old = dn new "System.Collections.Generic.List`1[System.String]"
+```
+
+**📚 Full Documentation:**
+- [📖 Generic Syntax Guide](GENERIC_SYNTAX_GUIDE.md) - Complete feature documentation
+- [🔄 Backward Compatibility](BACKWARD_COMPATIBILITY_SUMMARY.md) - Compatibility guarantee
+- [🧪 Test Overview](TEST_OVERVIEW.md) - Comprehensive test suite
 
 ## 📦 Installation
 
@@ -172,11 +194,14 @@ let $date = dn new "System.DateTime" --args [2023, 12, 25]
 # Create current DateTime
 let $now = dn new "System.DateTime" --args [(date now | date to-record | get year), (date now | date to-record | get month), (date now | date to-record | get day)]
 
-# Create a List<string>
-let $list = dn new "System.Collections.Generic.List[string]"
+# Create a List<string> (new user-friendly syntax!)
+let $list = dn new "List<string>"
 
-# Create a Dictionary<string, int>
-let $dict = dn new "System.Collections.Generic.Dictionary[string, int]"
+# Create a Dictionary<string, int> (new user-friendly syntax!)
+let $dict = dn new "Dictionary<string, int>"
+
+# Complex nested generics also work!
+let $nested = dn new "Dictionary<string, List<int>>"
 
 # Create StringBuilder
 let $sb = dn new "System.Text.StringBuilder"
