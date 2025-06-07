@@ -18,7 +18,10 @@ public class DotNetNewCommand : BaseCommand
         try
         {
             // Get type name from first positional argument
-            var typeName = args.GetPositionalString(0);
+            var userTypeName = args.GetPositionalString(0);
+            
+            // Convert user-friendly generic syntax to internal .NET type name
+            var typeName = GenericTypeConverter.ConvertToInternalTypeName(userTypeName);
             
             // Optional assembly parameter
             var assemblyPath = args.GetOptionalString("assembly");
@@ -36,7 +39,7 @@ public class DotNetNewCommand : BaseCommand
             var type = AssemblyManager.FindType(typeName);
             if (type == null)
             {
-                return CreateError($"Type '{typeName}' not found. Make sure the assembly is loaded.");
+                return CreateError($"Type '{userTypeName}' (resolved to '{typeName}') not found. Make sure the assembly is loaded.");
             }
 
             // Find matching constructor
@@ -89,7 +92,7 @@ public class DotNetNewCommand : BaseCommand
                 {
                     var availableConstructors = string.Join(", ", constructors.Select(c => 
                         $"({string.Join(", ", c.GetParameters().Select(p => p.ParameterType.Name))})"));
-                    return CreateError($"No matching constructor found for {typeName}. Available constructors: {availableConstructors}");
+                    return CreateError($"No matching constructor found for {userTypeName}. Available constructors: {availableConstructors}");
                 }
             }
 
