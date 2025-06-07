@@ -82,7 +82,12 @@ jobs:
     - name: Generate checksums (Unix)
       if: matrix.os != 'windows-latest'
       run: |
-        sha256sum nu-plugin-dotnet-${{ matrix.runtime }}.tar.gz > nu-plugin-dotnet-${{ matrix.runtime }}.tar.gz.sha256
+        if command -v sha256sum &> /dev/null; then
+          sha256sum nu-plugin-dotnet-${{ matrix.runtime }}.tar.gz > nu-plugin-dotnet-${{ matrix.runtime }}.tar.gz.sha256
+        else
+          # macOS fallback
+          shasum -a 256 nu-plugin-dotnet-${{ matrix.runtime }}.tar.gz > nu-plugin-dotnet-${{ matrix.runtime }}.tar.gz.sha256
+        fi
     
     - name: Upload artifacts
       uses: actions/upload-artifact@v4

@@ -79,6 +79,15 @@ public class CommandRegistry
     {
         return commandName switch
         {
+            "dn new" => new object[]
+            {
+                new
+                {
+                    name = "type",
+                    desc = "The .NET type name to create",
+                    shape = "String"
+                }
+            },
             "dn call" => new object[]
             {
                 new
