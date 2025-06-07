@@ -179,6 +179,33 @@ public class CommandRegistry
     {
         return commandName switch
         {
+            "dn members" => new object[]
+            {
+                new
+                {
+                    @long = "type",
+                    @short = "t",
+                    arg = "String",
+                    required = false,
+                    desc = "Filter by member type (methods, properties, fields)"
+                },
+                new
+                {
+                    @long = "static",
+                    @short = "s",
+                    arg = (string?)null,
+                    required = false,
+                    desc = "Include static members"
+                },
+                new
+                {
+                    @long = "instance",
+                    @short = "i",
+                    arg = (string?)null,
+                    required = false,
+                    desc = "Include instance members"
+                }
+            },
             "dn load-assembly" => new object[]
             {
                 new
