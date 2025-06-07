@@ -26,7 +26,7 @@ public class PluginValue
         Value = new Dictionary<string, object> 
         { 
             ["object_id"] = objectId, 
-            ["type_name"] = typeName 
+            ["type_name"] = SimplifyTypeName(typeName)
         } 
     };
 
@@ -62,6 +62,154 @@ public class PluginValue
         var dict = (Dictionary<string, object>)Value!;
         return dict["type_name"].ToString()!;
     }
+
+    private static string SimplifyTypeName(string typeName)
+    {
+        // Remove assembly qualification from generic type parameters
+        // Example: System.Collections.Generic.List`1[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
+        // becomes: System.Collections.Generic.List`1[System.String]
+        
+        if (!typeName.Contains("["))
+        {
+            // Not a generic type, return as-is
+            return typeName;
+        }
+        
+        // Handle double bracket format [[...]] used by .NET for assembly-qualified generics
+        if (typeName.Contains("[["))
+        {
+            return SimplifyDoubleBracketFormat(typeName);
+        }
+        
+        // Handle single bracket format [param,assembly] 
+        return SimplifySingleBracketFormat(typeName);
+    }
+    
+    private static string SimplifyDoubleBracketFormat(string typeName)
+    {
+        // Handle format: Type`1[[Param, Assembly, ...],[Param2, Assembly2, ...]]
+        var doubleBracketIndex = typeName.IndexOf("[[");
+        if (doubleBracketIndex == -1) return typeName;
+        
+        var result = new System.Text.StringBuilder();
+        result.Append(typeName.Substring(0, doubleBracketIndex + 1)); // Include up to single [
+        
+        // Extract content between [[ and ]]
+        var contentStart = doubleBracketIndex + 2; // Skip [[
+        var contentEnd = typeName.LastIndexOf("]]");
+        if (contentEnd == -1) contentEnd = typeName.LastIndexOf(']');
+        
+        var content = typeName.Substring(contentStart, contentEnd - contentStart);
+        
+        // Split parameters by ],[ pattern (assembly-qualified parameters are separated by this)
+        var parameters = SplitAssemblyQualifiedParameters(content);
+        var simplifiedParams = new List<string>();
+        
+        foreach (var param in parameters)
+        {
+            var trimmed = param.Trim();
+            if (!string.IsNullOrEmpty(trimmed))
+            {
+                // Remove leading/trailing brackets if present
+                if (trimmed.StartsWith("[")) trimmed = trimmed.Substring(1);
+                if (trimmed.EndsWith("]")) trimmed = trimmed.Substring(0, trimmed.Length - 1);
+                
+                // Extract just the type name (before first comma)
+                var commaIndex = trimmed.IndexOf(',');
+                if (commaIndex > 0)
+                {
+                    var typePart = trimmed.Substring(0, commaIndex).Trim();
+                    simplifiedParams.Add(typePart);
+                }
+                else
+                {
+                    simplifiedParams.Add(trimmed);
+                }
+            }
+        }
+        
+        result.Append(string.Join(",", simplifiedParams));
+        result.Append(']');
+        
+        return result.ToString();
+    }
+    
+    private static string SimplifySingleBracketFormat(string typeName)
+    {
+        // Handle format: Type`1[Param,Assembly,Version,...]
+        var openBracketIndex = typeName.IndexOf('[');
+        if (openBracketIndex == -1) return typeName;
+        
+        var result = new System.Text.StringBuilder();
+        result.Append(typeName.Substring(0, openBracketIndex + 1));
+        
+        var paramSection = typeName.Substring(openBracketIndex + 1);
+        var closeBracketIndex = paramSection.LastIndexOf(']');
+        if (closeBracketIndex > 0)
+        {
+            paramSection = paramSection.Substring(0, closeBracketIndex);
+        }
+        
+        // Split by comma and take first part (type name)
+        var commaIndex = paramSection.IndexOf(',');
+        if (commaIndex > 0)
+        {
+            result.Append(paramSection.Substring(0, commaIndex).Trim());
+        }
+        else
+        {
+            result.Append(paramSection.Trim());
+        }
+        
+        result.Append(']');
+        return result.ToString();
+    }
+    
+    private static List<string> SplitAssemblyQualifiedParameters(string content)
+    {
+        // Split assembly-qualified parameters that are in format [Type, Assembly],[Type2, Assembly2]
+        var parameters = new List<string>();
+        var currentParam = new System.Text.StringBuilder();
+        var bracketDepth = 0;
+        
+        for (int i = 0; i < content.Length; i++)
+        {
+            char c = content[i];
+            
+            if (c == '[')
+            {
+                bracketDepth++;
+                currentParam.Append(c);
+            }
+            else if (c == ']')
+            {
+                bracketDepth--;
+                currentParam.Append(c);
+                
+                if (bracketDepth == 0 && i + 1 < content.Length && content[i + 1] == ',')
+                {
+                    // End of a parameter
+                    parameters.Add(currentParam.ToString());
+                    currentParam.Clear();
+                    i++; // Skip the comma
+                }
+            }
+            else
+            {
+                currentParam.Append(c);
+            }
+        }
+        
+        // Add the last parameter
+        if (currentParam.Length > 0)
+        {
+            parameters.Add(currentParam.ToString());
+        }
+        
+        return parameters;
+    }
+    
+
 }
 
 public enum PluginValueType
