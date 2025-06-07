@@ -494,7 +494,25 @@ public class PluginHost
 
     private PluginValue ParseStringValue(string? stringValue)
     {
-        // Check if this is an encoded custom object
+        // Check if this is an encoded custom object in new format: TypeName@ObjectId
+        if (stringValue != null && stringValue.Contains("@"))
+        {
+            var lastAtIndex = stringValue.LastIndexOf('@');
+            if (lastAtIndex > 0 && lastAtIndex < stringValue.Length - 1)
+            {
+                var typeName = stringValue.Substring(0, lastAtIndex);
+                var objectId = stringValue.Substring(lastAtIndex + 1);
+                
+                // Verify the object exists in the object manager
+                var obj = _objectManager?.GetObject(objectId);
+                if (obj != null)
+                {
+                    return PluginValue.Custom(objectId, typeName);
+                }
+            }
+        }
+        
+        // Check if this is an encoded custom object in old format (for backward compatibility)
         if (stringValue != null && stringValue.StartsWith("__CUSTOM_OBJECT__") && stringValue.EndsWith("__"))
         {
             var objectId = stringValue.Substring("__CUSTOM_OBJECT__".Length, stringValue.Length - "__CUSTOM_OBJECT__".Length - 2);
@@ -599,12 +617,16 @@ public class PluginHost
             PluginValueType.Binary => new { Binary = new { val = Convert.ToBase64String((byte[])value.Value!), span } },
             PluginValueType.List => new { List = new { vals = value.AsList().Select(ConvertPluginValueToNushellValue).ToArray(), span } },
             PluginValueType.Record => new { Record = new { val = value.AsRecord().ToDictionary(kvp => kvp.Key, kvp => ConvertPluginValueToNushellValue(kvp.Value)), span } },
-            PluginValueType.Custom => new { String = new { val = $"__CUSTOM_OBJECT__{value.GetObjectId()}__", span } }, // Encode custom objects as special strings
+            PluginValueType.Custom => new { String = new { val = $"{value.GetTypeName()}@{value.GetObjectId()}", span } }, // Encode custom objects with type name
             PluginValueType.Nothing => new { Nothing = new { span } }, // Return Nothing object with span for void type
             PluginValueType.Error => throw new Exception(((PluginError)value.Value!).Message), // Convert error to exception so nushell can handle it properly
             _ => new { String = new { val = value.Value?.ToString() ?? "", span } }
         };
     }
+
+
+    
+
 
     private static PluginResponse CreateErrorResponse(string message)
     {
