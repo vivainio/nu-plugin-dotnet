@@ -64,7 +64,7 @@ jobs:
         cd publish/${{ matrix.runtime }}
         7z a ../../nu-plugin-dotnet-${{ matrix.runtime }}.zip ${{ matrix.artifact }} 
         echo "Created nu-plugin-dotnet-${{ matrix.runtime }}.zip"
-        ls -la ../../nu-plugin-dotnet-${{ matrix.runtime }}.zip
+        Get-ChildItem ../../nu-plugin-dotnet-${{ matrix.runtime }}.zip
     
     - name: Create archive (Unix)
       if: matrix.os != 'windows-latest'

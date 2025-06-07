@@ -85,6 +85,7 @@ jobs:
         cd ..
         echo "Archive created:"
         ls -la nu-plugin-dotnet-${{ matrix.runtime }}.zip
+      shell: bash
     
     - name: Create TAR.GZ archive (Unix)
       if: steps.should_build.outputs.build == 'true' && matrix.archive == 'tar.gz'
