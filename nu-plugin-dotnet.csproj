@@ -5,10 +5,25 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    
+    <!-- Single-file deployment options -->
     <PublishSingleFile>true</PublishSingleFile>
     <SelfContained>true</SelfContained>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    
+    <!-- Trimming options for smaller binary -->
+    <PublishTrimmed>true</PublishTrimmed>
+    <TrimMode>partial</TrimMode>
+    <TrimmerSingleWarn>false</TrimmerSingleWarn>
+    
+    <!-- Assembly info -->
     <AssemblyName>nu_plugin_dotnet</AssemblyName>
     <RootNamespace>NuPluginDotNet</RootNamespace>
+    
+    <!-- Optimization -->
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
   </PropertyGroup>
 
   <ItemGroup>
@@ -19,6 +34,15 @@
     <PackageReference Include="NuGet.Protocol" Version="6.8.0" />
     <PackageReference Include="System.Reflection.Metadata" Version="8.0.0" />
     <PackageReference Include="Microsoft.Management.Infrastructure" Version="3.0.0" />
+  </ItemGroup>
+
+  <!-- Preserve assemblies and types needed for dynamic loading -->
+  <ItemGroup>
+    <TrimmerRootAssembly Include="System.Private.CoreLib" />
+    <TrimmerRootAssembly Include="System.Runtime" />
+    <TrimmerRootAssembly Include="System.Reflection" />
+    <TrimmerRootAssembly Include="System.Reflection.Metadata" />
+    <TrimmerRootAssembly Include="System.Text.Json" />
   </ItemGroup>
 
 </Project> 
