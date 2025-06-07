@@ -326,13 +326,13 @@ public interface IPluginCommandHandler
     /// Handle the Signature call - return command signatures.
     /// Called when nushell wants to know what commands your plugin provides.
     /// </summary>
-    Task<object> HandleSignatureAsync();
+    Task<SignatureResponse> HandleSignatureAsync();
     
     /// <summary>
     /// Handle the Metadata call - return plugin metadata.
     /// Called when nushell wants information about your plugin.
     /// </summary>
-    Task<object> HandleMetadataAsync();
+    Task<MetadataResponse> HandleMetadataAsync();
     
     /// <summary>
     /// Handle the Run call - execute a command.

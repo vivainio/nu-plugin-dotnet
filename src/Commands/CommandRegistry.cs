@@ -1,6 +1,9 @@
 using NuPluginDotNet.DotNet;
 using NuPluginDotNet.Plugin;
 using NuPluginDotNet.Types;
+using NuPluginDotNet.Protocol;
+using static NuPluginDotNet.Protocol.CommandHelpers;
+
 
 namespace NuPluginDotNet.Commands;
 
@@ -43,181 +46,91 @@ public class CommandRegistry
         return await command.ExecuteAsync(args);
     }
 
-    public List<object> GetSignatures()
+    public object[] GetSignatures()
     {
-        return new List<object>
-        {
-            new
-            {
-                Signature = _commands.Keys.Select(commandName => new
-                {
-                    sig = new
-                    {
-                        name = commandName,
-                        description = GetCommandDescription(commandName),
-                        extra_description = "",
-                        search_terms = new string[0],
-                        required_positional = GetRequiredPositional(commandName),
-                        optional_positional = GetOptionalPositional(commandName),
-                        rest_positional = GetRestPositional(commandName),
-                        vectorizes_over_list = false,
-                        named = GetNamedParameters(commandName),
-                        input_output_types = new object[][] { new object[] { "Any", "Any" } },
-                        allow_variants_without_examples = true,
-                        is_filter = false,
-                        creates_scope = false,
-                        allows_unknown_args = false,
-                        category = "Default"
-                    },
-                    examples = new object[0]
-                }).ToArray()
-            }
-        };
+        return _commands.Keys.Select(commandName => 
+            Command(
+                name: commandName,
+                description: GetCommandDescription(commandName),
+                category: GetCommandCategory(commandName),
+                requiredPositional: GetRequiredPositionalTyped(commandName),
+                optionalPositional: GetOptionalPositionalTyped(commandName),
+                restPositional: GetRestPositionalTyped(commandName),
+                named: GetNamedParametersTyped(commandName),
+                inputOutputTypes: GetInputOutputTypes(commandName)
+            )
+        ).ToArray();
     }
 
-    private object[] GetRequiredPositional(string commandName)
+    private PositionalArg[] GetRequiredPositionalTyped(string commandName)
     {
         return commandName switch
         {
-            "dn new" => new object[]
+            "dn new" => new[]
             {
-                new
-                {
-                    name = "type",
-                    desc = "The .NET type name to create",
-                    shape = "String"
-                }
+                Positional("type", "The .NET type name to create", NuTypes.String)
             },
-            "dn call" => new object[]
+            "dn call" => new[]
             {
-                new
-                {
-                    name = "method",
-                    desc = "The method name to call",
-                    shape = "String"
-                }
+                Positional("method", "The method name to call", NuTypes.String)
             },
-            "dn get" => new object[]
+            "dn get" => new[]
             {
-                new
-                {
-                    name = "property",
-                    desc = "The property or field name to get",
-                    shape = "String"
-                }
+                Positional("property", "The property or field name to get", NuTypes.String)
             },
-            "dn set" => new object[]
+            "dn set" => new[]
             {
-                new
-                {
-                    name = "property",
-                    desc = "The property or field name to set",
-                    shape = "String"
-                },
-                new
-                {
-                    name = "value",
-                    desc = "The value to set",
-                    shape = "Any"
-                }
+                Positional("property", "The property or field name to set", NuTypes.String),
+                Positional("value", "The value to set", NuTypes.Any)
             },
-            "dn types" => new object[]
+            "dn types" => new[]
             {
-                new
-                {
-                    name = "assembly",
-                    desc = "The assembly name to list types from",
-                    shape = "String"
-                }
+                Positional("assembly", "The assembly name to list types from", NuTypes.String)
             },
-            "dn members" => new object[]
+            "dn members" => new[]
             {
-                new
-                {
-                    name = "type",
-                    desc = "The type name to list members from",
-                    shape = "String"
-                }
+                Positional("type", "The type name to list members from", NuTypes.String)
             },
-
-            _ => new object[0]
+            _ => Array.Empty<PositionalArg>()
         };
     }
 
-    private object[] GetOptionalPositional(string commandName)
+    private PositionalArg[] GetOptionalPositionalTyped(string commandName)
     {
         return commandName switch
         {
-            "dn load" => new object[]
+            "dn load" => new[]
             {
-                new
-                {
-                    name = "assembly",
-                    desc = "The assembly name or path to load",
-                    shape = "String"
-                }
+                Positional("assembly", "The assembly name or path to load", NuTypes.String)
             },
-            _ => new object[0]
+            _ => Array.Empty<PositionalArg>()
         };
     }
 
-    private object? GetRestPositional(string commandName)
+    private PositionalArg? GetRestPositionalTyped(string commandName)
     {
         return commandName switch
         {
-            "dn call" => new
-            {
-                name = "args",
-                desc = "Arguments to pass to the method",
-                shape = "Any"
-            },
+            "dn call" => Positional("args", "Arguments to pass to the method", NuTypes.Any),
             _ => null
         };
     }
 
-    private object[] GetNamedParameters(string commandName)
+    private NamedArg[] GetNamedParametersTyped(string commandName)
     {
         return commandName switch
         {
-            "dn members" => new object[]
+            "dn members" => new[]
             {
-                new
-                {
-                    @long = "type",
-                    @short = "t",
-                    arg = "String",
-                    required = false,
-                    desc = "Filter by member type (methods, properties, fields)"
-                },
-                new
-                {
-                    @long = "static",
-                    @short = "s",
-                    arg = (string?)null,
-                    required = false,
-                    desc = "Include static members"
-                },
-                new
-                {
-                    @long = "instance",
-                    @short = "i",
-                    arg = (string?)null,
-                    required = false,
-                    desc = "Include instance members"
-                }
+                Named("type", "Filter by member type (methods, properties, fields)", "t", NuTypes.String),
+                Named("static", "Include static members", "s"),
+                Named("instance", "Include instance members", "i")
             },
-            "dn load" => new object[]
+            "dn load" => new[]
             {
-                new
-                {
-                    @long = "path",
-                    @short = "p",
-                    arg = "String",
-                    required = false,
-                    desc = "The assembly file path to load"
-                }
+                Named("path", "The assembly file path to load", "p", NuTypes.String)
             },
-            _ => new object[0]
+            _ => Array.Empty<NamedArg>()
         };
     }
 
@@ -235,6 +148,35 @@ public class CommandRegistry
             "dn members" => "List members of a type",
             "dn obj" => "Convert .NET objects to nushell native data structures",
             _ => "Unknown command"
+        };
+    }
+
+    private string GetCommandCategory(string commandName)
+    {
+        return commandName switch
+        {
+            "dn new" or "dn call" or "dn get" or "dn set" => "Object Manipulation",
+            "dn load" or "dn assemblies" => "Assembly Management", 
+            "dn types" or "dn members" => "Type Inspection",
+            "dn obj" => "Data Conversion",
+            _ => "Default"
+        };
+    }
+
+    private object[][] GetInputOutputTypes(string commandName)
+    {
+        return commandName switch
+        {
+            "dn new" => new[] { InputOutput(NuTypes.Nothing, NuTypes.Any) },
+            "dn call" => new[] { InputOutput(NuTypes.Any, NuTypes.Any) },
+            "dn get" => new[] { InputOutput(NuTypes.Any, NuTypes.Any) },
+            "dn set" => new[] { InputOutput(NuTypes.Any, NuTypes.Any) },
+            "dn load" => new[] { InputOutput(NuTypes.Nothing, NuTypes.String) },
+            "dn assemblies" => new[] { InputOutput(NuTypes.Nothing, NuTypes.List) },
+            "dn types" => new[] { InputOutput(NuTypes.Nothing, NuTypes.List) },
+            "dn members" => new[] { InputOutput(NuTypes.Nothing, NuTypes.List) },
+            "dn obj" => new[] { InputOutput(NuTypes.Any, NuTypes.Any) },
+            _ => new[] { InputOutput(NuTypes.Any, NuTypes.Any) }
         };
     }
 }

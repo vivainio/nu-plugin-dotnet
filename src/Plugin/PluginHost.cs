@@ -6,6 +6,7 @@ using NuPluginDotNet.Commands;
 using NuPluginDotNet.DotNet;
 using NuPluginDotNet.Types;
 using NuPluginDotNet.Protocol;
+using static NuPluginDotNet.Protocol.NuValues;
 
 namespace NuPluginDotNet.Plugin;
 
@@ -101,36 +102,36 @@ public class PluginHost : IPluginCommandHandler
 
     #region IPluginCommandHandler Implementation
     
-    public async Task<object> HandleSignatureAsync()
+    public async Task<SignatureResponse> HandleSignatureAsync()
     {
         WriteLog("Handling Signature request");
         
         if (!_initializationSucceeded || _commandRegistry == null)
         {
-            return CreateError("Plugin not properly initialized");
+            return new SignatureResponse { Signature = new[] { Error("Plugin not properly initialized") } };
         }
         
         try
         {
             var signatures = _commandRegistry.GetSignatures();
-            WriteLog($"Returning {signatures.Count} command signatures");
-            return signatures;
+            WriteLog($"Returning {signatures.Length} command signatures");
+            return new SignatureResponse { Signature = signatures };
         }
         catch (Exception ex)
         {
             WriteLog($"Error getting signatures: {ex.Message}");
-            return CreateError($"Failed to get signatures: {ex.Message}");
+            return new SignatureResponse { Signature = new[] { Error($"Failed to get signatures: {ex.Message}") } };
         }
     }
     
-    public async Task<object> HandleMetadataAsync()
+    public async Task<MetadataResponse> HandleMetadataAsync()
     {
         WriteLog("Handling Metadata request");
         
-        return new
+        return new MetadataResponse
         {
             version = "1.0.0"
-        };
+        };  
     }
     
     public async Task<object> HandleRunAsync(JsonElement runElement)
@@ -140,7 +141,7 @@ public class PluginHost : IPluginCommandHandler
         if (!_initializationSucceeded || _commandRegistry == null || _valueConverter == null)
         {
             WriteLog("Plugin not properly initialized - returning error");
-            return CreateError("Plugin not properly initialized");
+            return Error("Plugin not properly initialized");
         }
         
         try
@@ -191,15 +192,15 @@ public class PluginHost : IPluginCommandHandler
             // Execute the command
             var response = await HandleRun(request);
             
-            // Convert response to nushell format
+            // Convert response to nushell format using new direct conversion
             var pluginValue = response.Value as PluginValue ?? new PluginValue { Type = PluginValueType.Nothing };
-            return ConvertPluginValueToNushellValue(pluginValue);
+            return ConvertPluginValueToNuValue(pluginValue);
         }
         catch (Exception ex)
         {
             WriteLog($"Error handling run command: {ex.Message}");
             WriteLog($"Stack trace: {ex.StackTrace}");
-            return CreateError($"Command execution failed: {ex.Message}");
+            return Error($"Command execution failed: {ex.Message}");
         }
     }
     
@@ -426,39 +427,28 @@ public class PluginHost : IPluginCommandHandler
         }
     }
 
-    private object ConvertPluginValueToNushellValue(PluginValue value)
+    private object ConvertPluginValueToNuValue(PluginValue value)
     {
         WriteLog($"[NUSHELL_CONVERTER] Converting PluginValue to Nushell format: {value.Type}");
         
         return value.Type switch
         {
-            PluginValueType.String => new { String = new { val = value.Value?.ToString() ?? "", span = new { start = 0, end = 0 } } },
-            PluginValueType.Int => new { Int = new { val = Convert.ToInt64(value.Value ?? 0), span = new { start = 0, end = 0 } } },
-            PluginValueType.Float => new { Float = new { val = Convert.ToDouble(value.Value ?? 0.0), span = new { start = 0, end = 0 } } },
-            PluginValueType.Bool => new { Bool = new { val = Convert.ToBoolean(value.Value ?? false), span = new { start = 0, end = 0 } } },
-            PluginValueType.Nothing => new { Nothing = new { span = new { start = 0, end = 0 } } },
-            PluginValueType.List when value.Value is List<PluginValue> list => new 
-            { 
-                List = new 
-                { 
-                    vals = list.Select(ConvertPluginValueToNushellValue).ToArray(),
-                    span = new { start = 0, end = 0 } 
-                } 
-            },
-            PluginValueType.Record when value.Value is Dictionary<string, PluginValue> dict => new 
-            { 
-                Record = new 
-                { 
-                    val = dict.ToDictionary(
-                        kvp => kvp.Key, 
-                        kvp => ConvertPluginValueToNushellValue(kvp.Value)
-                    ),
-                    span = new { start = 0, end = 0 } 
-                } 
-            },
-            PluginValueType.Binary when value.Value is byte[] bytes => new { Binary = new { val = bytes, span = new { start = 0, end = 0 } } },
-            PluginValueType.Custom => new { String = new { val = $"{value.GetTypeName()}@{value.GetObjectId()}", span = new { start = 0, end = 0 } } },
-            _ => new { String = new { val = value.Value?.ToString() ?? "", span = new { start = 0, end = 0 } } }
+            PluginValueType.String => String(value.Value?.ToString() ?? ""),
+            PluginValueType.Int => Int(Convert.ToInt64(value.Value ?? 0)),
+            PluginValueType.Float => Float(Convert.ToDouble(value.Value ?? 0.0)),
+            PluginValueType.Bool => Bool(Convert.ToBoolean(value.Value ?? false)),
+            PluginValueType.Nothing => Nothing(),
+            PluginValueType.List when value.Value is List<PluginValue> list => 
+                List(list.Select(ConvertPluginValueToNuValue).ToArray()),
+            PluginValueType.Record when value.Value is Dictionary<string, PluginValue> dict => 
+                Record(dict.ToDictionary(
+                    kvp => kvp.Key, 
+                    kvp => ConvertPluginValueToNuValue(kvp.Value)
+                )),
+            PluginValueType.Binary when value.Value is byte[] bytes => 
+                new { Binary = new { val = bytes, span = new { start = 0, end = 0 } } }, // No NuValues helper for binary yet
+            PluginValueType.Custom => String($"{value.GetTypeName()}@{value.GetObjectId()}"),
+            _ => String(value.Value?.ToString() ?? "")
         };
     }
 
@@ -475,16 +465,7 @@ public class PluginHost : IPluginCommandHandler
         };
     }
     
-    private object CreateError(string message)
-    {
-        return new
-        {
-            Error = new
-            {
-                msg = message
-            }
-        };
-    }
+
     
     #endregion
 }
