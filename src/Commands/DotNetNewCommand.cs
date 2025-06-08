@@ -103,7 +103,9 @@ public class DotNetNewCommand : BaseCommand
             var objectId = ObjectManager.RegisterObject(instance!);
             
             // Return custom object reference
-            return PluginValue.Custom(objectId, type.FullName ?? type.Name);
+            var customValue = PluginValue.Custom(objectId, type.FullName ?? type.Name);
+            
+            return customValue;
         }
         catch (Exception ex)
         {

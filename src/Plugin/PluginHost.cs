@@ -192,8 +192,18 @@ public class PluginHost : IPluginCommandHandler
             // Execute the command
             var response = await HandleRun(request);
             
+            WriteLog($"[HANDLE_RUN_ASYNC] Response type: {response.Type}");
+            WriteLog($"[HANDLE_RUN_ASYNC] Response.Value type: {response.Value?.GetType()}");
+            WriteLog($"[HANDLE_RUN_ASYNC] Response.Value: {response.Value}");
+            
             // Convert response to nushell format using new direct conversion
             var pluginValue = response.Value as PluginValue ?? new PluginValue { Type = PluginValueType.Nothing };
+            
+            WriteLog($"[HANDLE_RUN_ASYNC] PluginValue type: {pluginValue.Type}");
+            WriteLog($"[HANDLE_RUN_ASYNC] PluginValue.Value type: {pluginValue.Value?.GetType()}");
+            WriteLog($"[HANDLE_RUN_ASYNC] PluginValue.Value: {pluginValue.Value}");
+            WriteLog($"[HANDLE_RUN_ASYNC] PluginValue.IsCustom: {pluginValue.IsCustom}");
+            
             return ConvertPluginValueToNuValue(pluginValue);
         }
         catch (Exception ex)
@@ -236,11 +246,23 @@ public class PluginHost : IPluginCommandHandler
             var result = await _commandRegistry.ExecuteAsync(request.Call!.Head.Name, request.Call!);
             WriteLog($"[COMMAND_HANDLER] Command executed successfully");
             
-            return new PluginResponse
+            var debugLogFile = Path.Combine(Path.GetTempPath(), "nu-plugin-dotnet-debug.log");
+            File.AppendAllText(debugLogFile, $"[{DateTime.Now:HH:mm:ss.fff}] [HANDLE_RUN] Command result type: {result.Type}\n");
+            File.AppendAllText(debugLogFile, $"[{DateTime.Now:HH:mm:ss.fff}] [HANDLE_RUN] Command result IsCustom: {result.IsCustom}\n");
+            File.AppendAllText(debugLogFile, $"[{DateTime.Now:HH:mm:ss.fff}] [HANDLE_RUN] Command result Value type: {result.Value?.GetType()}\n");
+            File.AppendAllText(debugLogFile, $"[{DateTime.Now:HH:mm:ss.fff}] [HANDLE_RUN] Command result Value: {result.Value}\n");
+            
+            var response = new PluginResponse
             {
                 Type = "Value",
                 Value = result
             };
+            
+            File.AppendAllText(debugLogFile, $"[{DateTime.Now:HH:mm:ss.fff}] [HANDLE_RUN] Created PluginResponse.Type: {response.Type}\n");
+            File.AppendAllText(debugLogFile, $"[{DateTime.Now:HH:mm:ss.fff}] [HANDLE_RUN] Created PluginResponse.Value type: {response.Value?.GetType()}\n");
+            File.AppendAllText(debugLogFile, $"[{DateTime.Now:HH:mm:ss.fff}] [HANDLE_RUN] Created PluginResponse.Value: {response.Value}\n");
+            
+            return response;
         }
         catch (Exception ex)
         {
@@ -486,27 +508,83 @@ public class PluginHost : IPluginCommandHandler
     private object ConvertPluginValueToNuValue(PluginValue value)
     {
         WriteLog($"[NUSHELL_CONVERTER] Converting PluginValue to Nushell format: {value.Type}");
+        WriteLog($"[NUSHELL_CONVERTER] Value.Value type: {value.Value?.GetType()}");
+        WriteLog($"[NUSHELL_CONVERTER] Value.Value: {value.Value}");
+        WriteLog($"[NUSHELL_CONVERTER] IsCustom: {value.IsCustom}");
         
-        return value.Type switch
+        var result = value.Type switch
         {
             PluginValueType.String => String(value.Value?.ToString() ?? ""),
             PluginValueType.Int => Int(Convert.ToInt64(value.Value ?? 0)),
             PluginValueType.Float => Float(Convert.ToDouble(value.Value ?? 0.0)),
             PluginValueType.Bool => Bool(Convert.ToBoolean(value.Value ?? false)),
             PluginValueType.Nothing => Nothing(),
-            PluginValueType.List when value.Value is List<PluginValue> list => 
+            PluginValueType.List when value.Value is IList<PluginValue> list => 
                 List(list.Select(ConvertPluginValueToNuValue).ToArray()),
-            PluginValueType.Record when value.Value is Dictionary<string, PluginValue> dict => 
-                Record(dict.ToDictionary(
-                    kvp => kvp.Key, 
-                    kvp => ConvertPluginValueToNuValue(kvp.Value)
-                )),
+            PluginValueType.Record when value.Value is IDictionary<string, PluginValue> dict => 
+                Record(dict.ToDictionary(kvp => kvp.Key, kvp => ConvertPluginValueToNuValue(kvp.Value))),
             PluginValueType.Binary when value.Value is byte[] bytes => 
-                new { Binary = new { val = bytes, span = new { start = 0, end = 0 } } }, // No NuValues helper for binary yet
+                new { Binary = new { val = bytes, span = new { start = 0, end = 0 } } },
             PluginValueType.Custom => new { Custom = new { val = new { object_id = value.GetObjectId(), type_name = value.GetTypeName() }, span = new { start = 0, end = 0 } } },
             PluginValueType.Error => FormatErrorValue(value),
-            _ => String(value.Value?.ToString() ?? "")
+            _ => HandleDefaultCase(value)
         };
+        
+        WriteLog($"[NUSHELL_CONVERTER] Result type: {result.GetType()}");
+        WriteLog($"[NUSHELL_CONVERTER] Result: {System.Text.Json.JsonSerializer.Serialize(result)}");
+        
+        return result;
+    }
+
+    private object HandleDefaultCase(PluginValue value)
+    {
+        // COMPREHENSIVE DIAGNOSTICS FOR DEFAULT CASE
+        WriteLog($"[DEFAULT_CASE] ⚠️  UNEXPECTED: PluginValue fell through to default case!");
+        WriteLog($"[DEFAULT_CASE] value.Type: {value.Type}");
+        WriteLog($"[DEFAULT_CASE] value.Type (int): {(int)value.Type}");
+        WriteLog($"[DEFAULT_CASE] value.Type.ToString(): {value.Type.ToString()}");
+        WriteLog($"[DEFAULT_CASE] value.IsCustom: {value.IsCustom}");
+        WriteLog($"[DEFAULT_CASE] value.Value type: {value.Value?.GetType()}");
+        WriteLog($"[DEFAULT_CASE] value.Value: {value.Value}");
+        
+        // Check all PluginValueType enum values for comparison
+        foreach (PluginValueType enumValue in Enum.GetValues<PluginValueType>())
+        {
+            WriteLog($"[DEFAULT_CASE] Enum {enumValue} ({(int)enumValue}) == value.Type: {enumValue == value.Type}");
+        }
+        
+        // If it says it's Custom but didn't match, investigate further
+        if (value.IsCustom || value.Type == PluginValueType.Custom)
+        {
+            WriteLog($"[DEFAULT_CASE] 🔥 BUG CONFIRMED: Claims to be Custom but didn't match Custom case!");
+            WriteLog($"[DEFAULT_CASE] Attempting to get object details...");
+            
+            try
+            {
+                var objectId = value.GetObjectId();
+                var typeName = value.GetTypeName();
+                WriteLog($"[DEFAULT_CASE] ObjectId: {objectId}");
+                WriteLog($"[DEFAULT_CASE] TypeName: {typeName}");
+                
+                WriteLog($"[DEFAULT_CASE] 🔧 ATTEMPTING TO CREATE CUSTOM OBJECT MANUALLY...");
+                var customResult = new { Custom = new { val = new { object_id = objectId, type_name = typeName }, span = new { start = 0, end = 0 } } };
+                WriteLog($"[DEFAULT_CASE] ✅ Manual Custom object creation successful!");
+                WriteLog($"[DEFAULT_CASE] Manual result: {System.Text.Json.JsonSerializer.Serialize(customResult)}");
+                
+                return customResult; // Return the properly formatted Custom object
+            }
+            catch (Exception ex)
+            {
+                WriteLog($"[DEFAULT_CASE] ❌ Error creating Custom object: {ex.Message}");
+                WriteLog($"[DEFAULT_CASE] Exception type: {ex.GetType()}");
+                WriteLog($"[DEFAULT_CASE] Stack trace: {ex.StackTrace}");
+            }
+        }
+        
+        // Log the final fallback
+        WriteLog($"[DEFAULT_CASE] 📝 Falling back to String representation: {value.Value?.ToString() ?? ""}");
+        
+        return String(value.Value?.ToString() ?? "");
     }
 
     private object FormatErrorValue(PluginValue errorValue)

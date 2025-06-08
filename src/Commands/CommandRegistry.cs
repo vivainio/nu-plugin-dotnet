@@ -39,11 +39,27 @@ public class CommandRegistry
 
     public async Task<PluginValue> ExecuteAsync(string commandName, PluginCall call)
     {
+        var debugLogFile = Path.Combine(Path.GetTempPath(), "nu-plugin-dotnet-debug.log");
+        File.AppendAllText(debugLogFile, $"[{DateTime.Now:HH:mm:ss.fff}] [COMMAND_REGISTRY] Executing command: {commandName}\n");
+        
         if (!_commands.TryGetValue(commandName, out var command))
             throw new InvalidOperationException($"Unknown command: {commandName}");
 
         var args = new CommandArgs(call, _valueConverter);
-        return await command.ExecuteAsync(args);
+        var result = await command.ExecuteAsync(args);
+        
+        File.AppendAllText(debugLogFile, $"[{DateTime.Now:HH:mm:ss.fff}] [COMMAND_REGISTRY] Command result type: {result.Type}\n");
+        File.AppendAllText(debugLogFile, $"[{DateTime.Now:HH:mm:ss.fff}] [COMMAND_REGISTRY] Command result IsCustom: {result.IsCustom}\n");
+        File.AppendAllText(debugLogFile, $"[{DateTime.Now:HH:mm:ss.fff}] [COMMAND_REGISTRY] Command result Value type: {result.Value?.GetType()}\n");
+        File.AppendAllText(debugLogFile, $"[{DateTime.Now:HH:mm:ss.fff}] [COMMAND_REGISTRY] Command result Value: {result.Value}\n");
+        
+        if (result.IsCustom)
+        {
+            File.AppendAllText(debugLogFile, $"[{DateTime.Now:HH:mm:ss.fff}] [COMMAND_REGISTRY] Custom object - ObjectId: {result.GetObjectId()}\n");
+            File.AppendAllText(debugLogFile, $"[{DateTime.Now:HH:mm:ss.fff}] [COMMAND_REGISTRY] Custom object - TypeName: {result.GetTypeName()}\n");
+        }
+        
+        return result;
     }
 
     public object[] GetSignatures()

@@ -180,6 +180,7 @@ public class NushellProtocolHandler
     private async Task<object> ProcessCallMessageAsync(JsonElement callElement)
     {
         WriteLog("Processing Call message");
+        var debugLogFile = Path.Combine(Path.GetTempPath(), "nu-plugin-protocol-debug.log");
         
         // Parse the call - it should be a 2-tuple [id, call_type]
         if (callElement.ValueKind != JsonValueKind.Array)
@@ -219,6 +220,14 @@ public class NushellProtocolHandler
                 {
                     WriteLog($"Processing Run call - ID: {callId}");
                     callResponse = await _commandHandler.HandleRunAsync(runElement);
+                    
+                    // Debug the response before it gets wrapped
+                    File.AppendAllText(debugLogFile, $"[{DateTime.Now:HH:mm:ss.fff}] [PROTOCOL] HandleRunAsync returned type: {callResponse?.GetType()}\n");
+                    File.AppendAllText(debugLogFile, $"[{DateTime.Now:HH:mm:ss.fff}] [PROTOCOL] HandleRunAsync returned: {callResponse}\n");
+                    
+                    // Serialize just the response to see what it looks like
+                    var responseJson = JsonSerializer.Serialize(callResponse, new JsonSerializerOptions { WriteIndented = true });
+                    File.AppendAllText(debugLogFile, $"[{DateTime.Now:HH:mm:ss.fff}] [PROTOCOL] HandleRunAsync response JSON:\n{responseJson}\n");
                 }
                 else
                 {
@@ -230,10 +239,20 @@ public class NushellProtocolHandler
                 callResponse = CreateError("Invalid call format");
             }
             
-            return new
+            var finalResponse = new
             {
                 CallResponse = new object[] { callId, callResponse }
             };
+            
+            // Debug the final wrapped response
+            File.AppendAllText(debugLogFile, $"[{DateTime.Now:HH:mm:ss.fff}] [PROTOCOL] Final wrapped response type: {finalResponse.GetType()}\n");
+            File.AppendAllText(debugLogFile, $"[{DateTime.Now:HH:mm:ss.fff}] [PROTOCOL] Final wrapped callResponse type: {callResponse?.GetType()}\n");
+            
+            // Serialize the final response to see the complete structure
+            var finalJson = JsonSerializer.Serialize(finalResponse, new JsonSerializerOptions { WriteIndented = true });
+            File.AppendAllText(debugLogFile, $"[{DateTime.Now:HH:mm:ss.fff}] [PROTOCOL] Final response JSON:\n{finalJson}\n");
+            
+            return finalResponse;
         }
         catch (Exception ex)
         {
@@ -266,10 +285,18 @@ public class NushellProtocolHandler
     /// </summary>
     private async Task SendMessageAsync(object message)
     {
+        var debugLogFile = Path.Combine(Path.GetTempPath(), "nu-plugin-protocol-debug.log");
+        File.AppendAllText(debugLogFile, $"[{DateTime.Now:HH:mm:ss.fff}] [SEND_MESSAGE] About to serialize message type: {message?.GetType()}\n");
+        File.AppendAllText(debugLogFile, $"[{DateTime.Now:HH:mm:ss.fff}] [SEND_MESSAGE] Message object: {message}\n");
+        
         var messageJson = JsonSerializer.Serialize(message);
+        
+        File.AppendAllText(debugLogFile, $"[{DateTime.Now:HH:mm:ss.fff}] [SEND_MESSAGE] Serialized JSON length: {messageJson.Length}\n");
+        File.AppendAllText(debugLogFile, $"[{DateTime.Now:HH:mm:ss.fff}] [SEND_MESSAGE] Serialized JSON: {messageJson}\n");
+        
         Console.WriteLine(messageJson);
         await Console.Out.FlushAsync();
-        WriteLog($"Message sent: {messageJson}");
+        WriteLog($"Response sent: {messageJson}");
     }
 
     /// <summary>
