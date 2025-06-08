@@ -253,20 +253,18 @@ public class ProtocolCallbackDebugTests
         // Act
         var response = await (Task<object?>)processMessageMethod.Invoke(protocolHandler, new object[] { helloMessage });
         
-        Assert.NotNull(response);
-        _output.WriteLine($"[TEST] Hello response type: {response.GetType()}");
+        // Hello messages should return null according to the nushell plugin protocol
+        // The plugin sends its Hello first, and receiving a Hello from nushell is just acknowledgment
+        Assert.Null(response);
+        _output.WriteLine($"[TEST] Hello response is null as expected (no response needed)");
 
-        _capturedJsonMessages.Clear();
-        await (Task)sendMessageMethod.Invoke(protocolHandler, new object[] { response });
-
-        // Assert
-        Assert.True(_capturedJsonMessages.Count > 0, "No JSON messages were captured for Hello message");
+        // Since response is null, we shouldn't try to send a message
+        // The test should verify that the Hello message was processed correctly
+        _output.WriteLine($"[TEST] Hello message processed successfully - no response message expected");
         
-        _output.WriteLine($"[TEST] Hello captured {_capturedJsonMessages.Count} JSON messages:");
-        foreach (var msg in _capturedJsonMessages)
-        {
-            _output.WriteLine($"[TEST] Hello response: {msg}");
-        }
+        // Verify that no additional JSON messages were captured (since no response is sent)
+        Assert.Equal(0, _capturedJsonMessages.Count);
+        _output.WriteLine($"[TEST] ✅ Hello message test passed - null response is correct per protocol");
     }
 
     [Fact]
