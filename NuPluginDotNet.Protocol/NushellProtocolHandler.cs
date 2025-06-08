@@ -16,6 +16,12 @@ public class NushellProtocolHandler
     private readonly string? _logFile;
     private readonly IPluginCommandHandler _commandHandler;
 
+    /// <summary>
+    /// Static callback that gets invoked with each JSON string sent by the protocol handler.
+    /// Useful for testing and debugging.
+    /// </summary>
+    public static Action<string>? JsonSentCallback { get; set; }
+
     public NushellProtocolHandler(IPluginCommandHandler commandHandler, bool debugEnabled = false)
     {
         _commandHandler = commandHandler;
@@ -297,6 +303,8 @@ public class NushellProtocolHandler
         Console.WriteLine(messageJson);
         await Console.Out.FlushAsync();
         WriteLog($"Response sent: {messageJson}");
+
+        JsonSentCallback?.Invoke(messageJson);
     }
 
     /// <summary>

@@ -322,6 +322,15 @@ public class PluginHost : IPluginCommandHandler
                 },
             JsonValueKind.Object when element.TryGetProperty("Custom", out var customVal) => 
                 ParseCustomObject(customVal),
+            JsonValueKind.String => new PluginValue { Type = PluginValueType.String, Value = element.GetString() },
+            JsonValueKind.Number => new PluginValue 
+            {
+                Type = element.TryGetInt64(out var intVal) ? PluginValueType.Int : PluginValueType.Float,
+                Value = element.TryGetInt64(out var longVal) ? longVal : element.GetDouble()
+            },
+            JsonValueKind.True => new PluginValue { Type = PluginValueType.Bool, Value = true },
+            JsonValueKind.False => new PluginValue { Type = PluginValueType.Bool, Value = false },
+            JsonValueKind.Null => new PluginValue { Type = PluginValueType.Nothing },
             _ => new PluginValue { Type = PluginValueType.String, Value = element.GetRawText() }
         };
     }
@@ -525,7 +534,7 @@ public class PluginHost : IPluginCommandHandler
                 Record(dict.ToDictionary(kvp => kvp.Key, kvp => ConvertPluginValueToNuValue(kvp.Value))),
             PluginValueType.Binary when value.Value is byte[] bytes => 
                 new { Binary = new { val = bytes, span = new { start = 0, end = 0 } } },
-            PluginValueType.Custom => new { Custom = new { val = new { object_id = value.GetObjectId(), type_name = value.GetTypeName() }, span = new { start = 0, end = 0 } } },
+            PluginValueType.Custom => CreateCustomObjectWithLogging(value),
             PluginValueType.Error => FormatErrorValue(value),
             _ => HandleDefaultCase(value)
         };
@@ -534,6 +543,32 @@ public class PluginHost : IPluginCommandHandler
         WriteLog($"[NUSHELL_CONVERTER] Result: {System.Text.Json.JsonSerializer.Serialize(result)}");
         
         return result;
+    }
+
+    private object CreateCustomObjectWithLogging(PluginValue value)
+    {
+        WriteLog($"[CUSTOM_CASE] ✅ SUCCESS: Processing Custom PluginValue!");
+        WriteLog($"[CUSTOM_CASE] Type: {value.Type}");
+        WriteLog($"[CUSTOM_CASE] IsCustom: {value.IsCustom}");
+        
+        try
+        {
+            var objectId = value.GetObjectId();
+            var typeName = value.GetTypeName();
+            WriteLog($"[CUSTOM_CASE] ObjectId: {objectId}");
+            WriteLog($"[CUSTOM_CASE] TypeName: {typeName}");
+            
+            var customResult = new { Custom = new { val = new { object_id = objectId, type_name = typeName }, span = new { start = 0, end = 0 } } };
+            WriteLog($"[CUSTOM_CASE] Created Custom object: {System.Text.Json.JsonSerializer.Serialize(customResult)}");
+            
+            return customResult;
+        }
+        catch (Exception ex)
+        {
+            WriteLog($"[CUSTOM_CASE] ❌ Error in Custom case: {ex.Message}");
+            WriteLog($"[CUSTOM_CASE] Stack trace: {ex.StackTrace}");
+            throw;
+        }
     }
 
     private object HandleDefaultCase(PluginValue value)
