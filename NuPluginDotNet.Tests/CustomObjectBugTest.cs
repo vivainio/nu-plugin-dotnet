@@ -98,6 +98,7 @@ public class CustomObjectBugTest
         
         // Create command args for "dn new System.Collections.ArrayList"
         var pluginCall = new PluginCall();
+        pluginCall.Head.Name = "dn new";
         pluginCall.Positional.Add(PluginValue.String("System.Collections.ArrayList"));
         var commandArgs = new CommandArgs(pluginCall, valueConverter);
         
@@ -228,6 +229,7 @@ public class CustomObjectBugTest
             
             // Create command args for "dn new System.Collections.ArrayList"
             var pluginCall = new PluginCall();
+            pluginCall.Head.Name = "dn new";
             pluginCall.Positional.Add(PluginValue.String("System.Collections.ArrayList"));
             var commandArgs = new CommandArgs(pluginCall, valueConverter);
             
@@ -300,6 +302,7 @@ public class CustomObjectBugTest
         
         // Create command args for "dn new System.Collections.ArrayList"
         var pluginCall = new PluginCall();
+        pluginCall.Head.Name = "dn new";
         pluginCall.Positional.Add(PluginValue.String("System.Collections.ArrayList"));
         var commandArgs = new CommandArgs(pluginCall, valueConverter);
         
