@@ -24,7 +24,7 @@ public class PluginHost : IPluginCommandHandler
     public PluginHost()
     {
         _debugEnabled = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("NU_PLUGIN_DOTNET_DEBUG"));
-        _logFile = _debugEnabled ? Path.Combine(Path.GetTempPath(), "nu-plugin-dotnet-debug.log") : null;
+        _logFile = _debugEnabled ? Path.Combine(Path.GetTempPath(), $"nu-plugin-dotnet-debug-{Environment.ProcessId}-{Thread.CurrentThread.ManagedThreadId}.log") : null;
         
         try
         {
@@ -246,7 +246,7 @@ public class PluginHost : IPluginCommandHandler
             var result = await _commandRegistry.ExecuteAsync(request.Call!.Head.Name, request.Call!);
             WriteLog($"[COMMAND_HANDLER] Command executed successfully");
             
-            var debugLogFile = Path.Combine(Path.GetTempPath(), "nu-plugin-dotnet-debug.log");
+            var debugLogFile = Path.Combine(Path.GetTempPath(), $"nu-plugin-dotnet-debug-{Environment.ProcessId}-{Thread.CurrentThread.ManagedThreadId}.log");
             File.AppendAllText(debugLogFile, $"[{DateTime.Now:HH:mm:ss.fff}] [HANDLE_RUN] Command result type: {result.Type}\n");
             File.AppendAllText(debugLogFile, $"[{DateTime.Now:HH:mm:ss.fff}] [HANDLE_RUN] Command result IsCustom: {result.IsCustom}\n");
             File.AppendAllText(debugLogFile, $"[{DateTime.Now:HH:mm:ss.fff}] [HANDLE_RUN] Command result Value type: {result.Value?.GetType()}\n");

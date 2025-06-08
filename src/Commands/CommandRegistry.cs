@@ -39,7 +39,7 @@ public class CommandRegistry
 
     public async Task<PluginValue> ExecuteAsync(string commandName, PluginCall call)
     {
-        var debugLogFile = Path.Combine(Path.GetTempPath(), "nu-plugin-dotnet-debug.log");
+                    var debugLogFile = Path.Combine(Path.GetTempPath(), $"nu-plugin-dotnet-debug-{Environment.ProcessId}-{Thread.CurrentThread.ManagedThreadId}.log");
         File.AppendAllText(debugLogFile, $"[{DateTime.Now:HH:mm:ss.fff}] [COMMAND_REGISTRY] Executing command: {commandName}\n");
         
         if (!_commands.TryGetValue(commandName, out var command))
