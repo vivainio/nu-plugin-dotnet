@@ -382,11 +382,67 @@ public class PluginHost : IPluginCommandHandler
         
         try
         {
-            return new PluginValue 
-            { 
-                Type = PluginValueType.Custom, 
-                Value = valElement.GetRawText() 
-            };
+            // The valElement should contain "val" and "span" properties
+            // We need to extract the "val" property which contains object_id and type_name
+            if (valElement.TryGetProperty("val", out var valProperty))
+            {
+                WriteLog("[CUSTOM_PARSER] Found 'val' property, extracting object_id and type_name");
+                
+                var customDict = new Dictionary<string, object>();
+                
+                foreach (var prop in valProperty.EnumerateObject())
+                {
+                    customDict[prop.Name] = prop.Value.ValueKind switch
+                    {
+                        JsonValueKind.String => prop.Value.GetString() ?? "",
+                        JsonValueKind.Number => prop.Value.GetDouble(),
+                        JsonValueKind.True => true,
+                        JsonValueKind.False => false,
+                        _ => prop.Value.GetRawText()
+                    };
+                }
+                
+                WriteLog($"[CUSTOM_PARSER] Extracted custom object with {customDict.Count} properties");
+                if (customDict.ContainsKey("object_id"))
+                {
+                    WriteLog($"[CUSTOM_PARSER] object_id: {customDict["object_id"]}");
+                }
+                if (customDict.ContainsKey("type_name"))
+                {
+                    WriteLog($"[CUSTOM_PARSER] type_name: {customDict["type_name"]}");
+                }
+                
+                return new PluginValue 
+                { 
+                    Type = PluginValueType.Custom, 
+                    Value = customDict
+                };
+            }
+            else
+            {
+                WriteLog("[CUSTOM_PARSER] No 'val' property found, treating as legacy format");
+                
+                // Fallback: treat the entire element as the custom object data
+                var customDict = new Dictionary<string, object>();
+                
+                foreach (var prop in valElement.EnumerateObject())
+                {
+                    customDict[prop.Name] = prop.Value.ValueKind switch
+                    {
+                        JsonValueKind.String => prop.Value.GetString() ?? "",
+                        JsonValueKind.Number => prop.Value.GetDouble(),
+                        JsonValueKind.True => true,
+                        JsonValueKind.False => false,
+                        _ => prop.Value.GetRawText()
+                    };
+                }
+                
+                return new PluginValue 
+                { 
+                    Type = PluginValueType.Custom, 
+                    Value = customDict
+                };
+            }
         }
         catch (Exception ex)
         {
@@ -447,9 +503,82 @@ public class PluginHost : IPluginCommandHandler
                 )),
             PluginValueType.Binary when value.Value is byte[] bytes => 
                 new { Binary = new { val = bytes, span = new { start = 0, end = 0 } } }, // No NuValues helper for binary yet
-            PluginValueType.Custom => String($"{value.GetTypeName()}@{value.GetObjectId()}"),
+            PluginValueType.Custom => new { Custom = new { val = new { object_id = value.GetObjectId(), type_name = value.GetTypeName() }, span = new { start = 0, end = 0 } } },
+            PluginValueType.Error => FormatErrorValue(value),
             _ => String(value.Value?.ToString() ?? "")
         };
+    }
+
+    private object FormatErrorValue(PluginValue errorValue)
+    {
+        WriteLog($"[ERROR_FORMATTER] Formatting error value");
+        
+        if (errorValue.Value is PluginError pluginError)
+        {
+            // Create a detailed error message
+            var errorMessage = pluginError.Message;
+            
+            // Add exception type if available
+            if (!string.IsNullOrEmpty(pluginError.Type))
+            {
+                errorMessage = $"[{pluginError.Type}] {errorMessage}";
+            }
+            
+            // Add stack trace if available and debugging is enabled
+            if (!string.IsNullOrEmpty(pluginError.StackTrace) && _debugEnabled)
+            {
+                errorMessage += $"\nStack Trace:\n{pluginError.StackTrace}";
+            }
+            
+            // Add inner exception if available
+            if (pluginError.InnerException != null)
+            {
+                errorMessage += $"\nInner Exception: {pluginError.InnerException.Message}";
+                if (!string.IsNullOrEmpty(pluginError.InnerException.Type))
+                {
+                    errorMessage += $" ({pluginError.InnerException.Type})";
+                }
+            }
+            
+            WriteLog($"[ERROR_FORMATTER] Formatted error: {errorMessage}");
+            
+            // Return as a proper nushell error format
+            return new {
+                Error = new {
+                    msg = "Plugin execution error",
+                    help = errorMessage,
+                    labels = new[] {
+                        new {
+                            text = pluginError.Message,
+                            span = new { start = 0, end = 0 }
+                        }
+                    }
+                }
+            };
+        }
+        else if (errorValue.Value is string errorString)
+        {
+            // Handle simple string errors
+            WriteLog($"[ERROR_FORMATTER] Formatting string error: {errorString}");
+            return new {
+                Error = new {
+                    msg = "Plugin error",
+                    help = errorString
+                }
+            };
+        }
+        else
+        {
+            // Fallback for unknown error formats
+            var fallbackMessage = errorValue.Value?.ToString() ?? "Unknown plugin error";
+            WriteLog($"[ERROR_FORMATTER] Fallback error formatting: {fallbackMessage}");
+            return new {
+                Error = new {
+                    msg = "Plugin error",
+                    help = fallbackMessage
+                }
+            };
+        }
     }
 
     private static PluginResponse CreateErrorResponse(string message)

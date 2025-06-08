@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "nu-plugin-dotnet", "nu-plug
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NuPluginDotNet.Protocol", "NuPluginDotNet.Protocol\NuPluginDotNet.Protocol.csproj", "{78C53B73-C61A-47F3-9397-B695C1620AAA}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NuPluginDotNet.Tests", "NuPluginDotNet.Tests\NuPluginDotNet.Tests.csproj", "{1D0C0449-7F83-4681-B605-4D99BE4987F3}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,5 +26,9 @@ Global
 		{78C53B73-C61A-47F3-9397-B695C1620AAA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{78C53B73-C61A-47F3-9397-B695C1620AAA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{78C53B73-C61A-47F3-9397-B695C1620AAA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1D0C0449-7F83-4681-B605-4D99BE4987F3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1D0C0449-7F83-4681-B605-4D99BE4987F3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1D0C0449-7F83-4681-B605-4D99BE4987F3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1D0C0449-7F83-4681-B605-4D99BE4987F3}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

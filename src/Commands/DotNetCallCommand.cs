@@ -33,7 +33,13 @@ public class DotNetCallCommand : BaseCommand
             {
                 // Instance method call
                 var objectId = args.Input.GetObjectId();
+                Console.Error.WriteLine($"[DEBUG] Custom object - ObjectId: {objectId}");
                 target = ObjectManager.GetObject(objectId);
+                Console.Error.WriteLine($"[DEBUG] Retrieved target object: {target?.GetType()?.Name ?? "null"}");
+                if (target == null)
+                {
+                    return CreateError($"Object with ID '{objectId}' not found or has been garbage collected.");
+                }
                 targetType = target.GetType();
             }
             else if (args.Input?.IsString == true)

@@ -49,6 +49,9 @@
     <Compile Remove="TestLibrary\**" />
     <EmbeddedResource Remove="TestLibrary\**" />
     <None Remove="TestLibrary\**" />
+    <Compile Remove="NuPluginDotNet.Tests\**" />
+    <EmbeddedResource Remove="NuPluginDotNet.Tests\**" />
+    <None Remove="NuPluginDotNet.Tests\**" />
   </ItemGroup>
 
 </Project> 
