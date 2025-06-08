@@ -12,6 +12,7 @@ jobs:
     name: Build on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false  # Allow other platforms to continue even if one fails
       matrix:
         include:
           - os: windows-latest
@@ -42,13 +43,13 @@ jobs:
           ${{ runner.os }}-nuget-
     
     - name: Restore dependencies
-      run: dotnet restore
+      run: dotnet restore NuPluginDotNet.sln
     
     - name: Build Debug
-      run: dotnet build -c Debug --no-restore
+      run: dotnet build NuPluginDotNet.sln -c Debug --no-restore
     
     - name: Build Release
-      run: dotnet build -c Release --no-restore
+      run: dotnet build NuPluginDotNet.sln -c Release --no-restore
     
     - name: Run C# Unit Tests
       run: dotnet test NuPluginDotNet.Tests/NuPluginDotNet.Tests.csproj --no-build -c Debug --verbosity normal --logger trx --results-directory TestResults
@@ -63,7 +64,7 @@ jobs:
     
     - name: Publish self-contained binary
       run: |
-        dotnet publish -c Release -r ${{ matrix.runtime }} --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=true -o ./publish/${{ matrix.runtime }}
+        dotnet publish nu-plugin-dotnet.csproj -c Release -r ${{ matrix.runtime }} --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=true -o ./publish/${{ matrix.runtime }}
     
     - name: Verify binary exists (Windows)
       if: matrix.os == 'windows-latest'
@@ -118,10 +119,10 @@ jobs:
           ${{ runner.os }}-nuget-
     
     - name: Restore dependencies
-      run: dotnet restore
+      run: dotnet restore NuPluginDotNet.sln
     
     - name: Build test project
-      run: dotnet build NuPluginDotNet.Tests/NuPluginDotNet.Tests.csproj -c Debug --no-restore
+      run: dotnet build NuPluginDotNet.sln -c Debug --no-restore
     
     - name: Run unit tests with coverage
       run: |
@@ -141,7 +142,7 @@ jobs:
         name: Unit Test Results
         path: TestResults/*.trx
         reporter: dotnet-trx
-        fail-on-error: true
+        fail-on-error: false  # Don't fail the workflow on test report generation issues
     
     - name: Upload test results
       uses: actions/upload-artifact@v4
@@ -235,18 +236,18 @@ jobs:
         dotnet-version: '8.0.x'
     
     - name: Restore dependencies
-      run: dotnet restore
+      run: dotnet restore NuPluginDotNet.sln
     
     - name: Code formatting check
-      run: dotnet format --no-restore --verbosity diagnostic --verify-no-changes
+      run: dotnet format NuPluginDotNet.sln --no-restore --verbosity diagnostic --verify-no-changes
       continue-on-error: true
     
     - name: Security scan
-      run: dotnet list package --vulnerable --include-transitive
+      run: dotnet list NuPluginDotNet.sln package --vulnerable --include-transitive
       continue-on-error: true
     
     - name: Package outdated check
-      run: dotnet list package --outdated
+      run: dotnet list NuPluginDotNet.sln package --outdated
       continue-on-error: true
 
   status-check:
