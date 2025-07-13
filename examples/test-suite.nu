@@ -26,7 +26,7 @@ let $results = [
 
 # Test 1: Basic Object Creation  
 (run_test "Simple Object Creation" {
-    let $list = dn new --type "System.Collections.Generic.List[string]"
+    let $list = dn new "List<string>"
     if ($list | describe) == "custom" { "SUCCESS" } else { error make { msg: "Expected custom type" } }
 }),
 
@@ -147,7 +147,7 @@ let $results = [
 # Test 19: Error Handling - Invalid Constructor
 (run_test "Error Handling - Invalid GUID Constructor" {
     try {
-        dn new --type "System.Guid"
+        dn new "System.Guid"
         "SUCCESS" # This actually works fine
     } catch {
         "SUCCESS" # Either way is fine

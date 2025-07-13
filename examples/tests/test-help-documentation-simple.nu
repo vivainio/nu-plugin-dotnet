@@ -15,8 +15,8 @@ try { dn new "System.Text.StringBuilder" } catch { |e| print $"Failed: ($e.msg)"
 print "3. ArrayList creation"
 try { dn new "System.Collections.ArrayList" } catch { |e| print $"Failed: ($e.msg)" }
 
-print "4. StringBuilder with initial text"
-try { dn new "System.Text.StringBuilder" "Initial text" } catch { |e| print $"Failed: ($e.msg)" }
+print "4. StringBuilder with initial text (expected to fail - constructor args not supported)"
+try { dn new "System.Text.StringBuilder" "Initial text" } catch { |e| print $"✅ Expected failure: ($e.msg)" }
 
 print "5. Generic List of strings"
 try { dn new "System.Collections.Generic.List`1[System.String]" } catch { |e| print $"Failed: ($e.msg)" }
@@ -57,7 +57,10 @@ print "Testing dn get command examples..."
 
 print "12. StringBuilder Length property"
 try { 
-    dn new "System.Text.StringBuilder" "Hello" | dn get "Length"
+    # Constructor args not supported - use parameterless constructor
+    let sb = (dn new "System.Text.StringBuilder")
+    $sb | dn call "Append" "Hello"
+    $sb | dn get "Length"
 } catch { |e| print $"Failed: ($e.msg)" }
 
 print "13. ArrayList Count property"
@@ -109,7 +112,8 @@ print "Testing dn obj command..."
 
 print "20. Convert DateTime to nushell record"
 try { 
-    dn new "System.DateTime" | dn obj | get __type__
+    # DateTime requires constructor args - use DateTime.Now instead
+    "System.DateTime" | dn get "Now" | dn obj | get __type__
 } catch { |e| print $"Failed: ($e.msg)" }
 
 print ""

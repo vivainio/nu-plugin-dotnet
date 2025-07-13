@@ -24,8 +24,8 @@ print "4. help dn set"
 nu -c 'help dn set'
 print ""
 
-print "5. help dn load-assembly"
-nu -c 'help dn load-assembly'
+print "5. help dn load"
+nu -c 'help dn load'
 print ""
 
 print "6. help dn assemblies"

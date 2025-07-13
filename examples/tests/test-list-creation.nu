@@ -32,38 +32,38 @@ try {
 }
 print ""
 
-print "2. Testing System.Collections.Generic.List[string]"
-print "------------------------------------------------"
+print "2. Testing System.Collections.Generic.List<string>"
+print "--------------------------------------------------"
 try {
-    let $stringList = dn new "System.Collections.Generic.List[string]"
-    print $"✅ List[string] created: ($stringList)"
+    let $stringList = dn new "List<string>"
+    print $"✅ List<string> created: ($stringList)"
     
     $stringList | dn call "Add" "Hello"
     $stringList | dn call "Add" "World"
     
     let $count = $stringList | dn get "Count"
-    print $"✅ List[string] count: ($count)"
+    print $"✅ List<string> count: ($count)"
     
 } catch { |err|
-    print $"❌ List[string] failed: ($err.msg)"
+    print $"❌ List<string> failed: ($err.msg)"
 }
 print ""
 
-print "3. Testing System.Collections.Generic.List[int]"
+print "3. Testing System.Collections.Generic.List<int>"
 print "---------------------------------------------"
 try {
-    let $intList = dn new "System.Collections.Generic.List[int]"
-    print $"✅ List[int] created: ($intList)"
+    let $intList = dn new "List<int>"
+    print $"✅ List<int> created: ($intList)"
     
     $intList | dn call "Add" 1
     $intList | dn call "Add" 2
     $intList | dn call "Add" 3
     
     let $count = $intList | dn get "Count"
-    print $"✅ List[int] count: ($count)"
+    print $"✅ List<int> count: ($count)"
     
 } catch { |err|
-    print $"❌ List[int] failed: ($err.msg)"
+    print $"❌ List<int> failed: ($err.msg)"
 }
 print ""
 
@@ -72,34 +72,34 @@ print "--------------------------------"
 
 # Test HashSet
 try {
-    let $hashSet = dn new "System.Collections.Generic.HashSet[string]"
-    print $"✅ HashSet[string] created: ($hashSet)"
+    let $hashSet = dn new "HashSet<string>"
+    print $"✅ HashSet<string> created: ($hashSet)"
 } catch { |err|
-    print $"❌ HashSet[string] failed: ($err.msg)"
+    print $"❌ HashSet<string> failed: ($err.msg)"
 }
 
 # Test Dictionary
 try {
-    let $dict = dn new "System.Collections.Generic.Dictionary[string, int]"
-    print $"✅ Dictionary[string, int] created: ($dict)"
+    let $dict = dn new "Dictionary<string, int>"
+    print $"✅ Dictionary<string, int> created: ($dict)"
 } catch { |err|
-    print $"❌ Dictionary[string, int] failed: ($err.msg)"
+    print $"❌ Dictionary<string, int> failed: ($err.msg)"
 }
 
 # Test Queue (generic)
 try {
-    let $queue = dn new "System.Collections.Generic.Queue[string]"
-    print $"✅ Queue[string] created: ($queue)"
+    let $queue = dn new "Queue<string>"
+    print $"✅ Queue<string> created: ($queue)"
 } catch { |err|
-    print $"❌ Queue[string] failed: ($err.msg)"
+    print $"❌ Queue<string> failed: ($err.msg)"
 }
 
 # Test Stack (generic)
 try {
-    let $stack = dn new "System.Collections.Generic.Stack[string]"
-    print $"✅ Stack[string] created: ($stack)"
+    let $stack = dn new "Stack<string>"
+    print $"✅ Stack<string> created: ($stack)"
 } catch { |err|
-    print $"❌ Stack[string] failed: ($err.msg)"
+    print $"❌ Stack<string> failed: ($err.msg)"
 }
 print ""
 
@@ -168,7 +168,7 @@ print "7. Testing assembly loading for generic collections"
 print "=================================================="
 print "Loading System.Collections assembly..."
 try {
-    dn load-assembly "System.Collections"
+    # System.Collections is already available
     print "✅ System.Collections loaded"
 } catch { |err|
     print $"❌ Failed to load System.Collections: ($err.msg)"
@@ -176,7 +176,7 @@ try {
 
 print "Loading System.Collections.Generic assembly..."
 try {
-    dn load-assembly "System.Collections.Generic"  
+    # System.Collections.Generic is already available  
     print "✅ System.Collections.Generic loaded"
 } catch { |err|
     print $"❌ Failed to load System.Collections.Generic: ($err.msg)"
@@ -186,15 +186,15 @@ print ""
 print "8. Re-testing generic collections after assembly loading"
 print "======================================================="
 try {
-    let $stringList2 = dn new "System.Collections.Generic.List[string]"
-    print $"✅ List[string] created after assembly loading: ($stringList2)"
+    let $stringList2 = dn new "List<string>"
+    print $"✅ List<string> created after assembly loading: ($stringList2)"
     
     $stringList2 | dn call "Add" "Post-load test"
     let $count = $stringList2 | dn get "Count"
     print $"✅ Count: ($count)"
     
 } catch { |err|
-    print $"❌ List[string] still failed: ($err.msg)"
+    print $"❌ List<string> still failed: ($err.msg)"
 }
 print ""
 

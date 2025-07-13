@@ -8,7 +8,10 @@
       "Bash(ls:*)",
       "Bash(mv:*)",
       "Bash(mkdir:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(nu run-all-tests:*)",
+      "Bash(plugin add:*)",
+      "Bash(nu:*)"
     ],
     "deny": []
   }

@@ -6,8 +6,8 @@ print "=============================="
 print ""
 
 print "Loading required assemblies..."
-dn load-assembly "System.Collections"
-dn load-assembly "System.Text"
+# Note: Basic .NET assemblies are already loaded automatically
+# Using built-in assemblies that are already available
 print ""
 
 print "1. Testing StringBuilder"

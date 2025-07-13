@@ -7,11 +7,11 @@ print "=== Custom DLL Test (Working Version) ==="
 print ""
 
 # Load our custom assembly
-let dll_path = ($env.PWD | path join "TestLibrary" "bin" "Release" "net8.0" "TestLibrary.dll")
+let dll_path = ($env.PWD | path join "TestLibrary" "bin" "Release" "net8.0" "TestLibrary.dll" | str replace '\' '/')
 print $"Loading custom DLL: ($dll_path)"
 
 try {
-    dn load-assembly $dll_path
+    dn load $dll_path
     print "✅ Custom DLL loaded successfully"
 } catch { |e|
     print $"❌ Failed to load DLL: ($e.msg)"

@@ -1,21 +1,21 @@
 #!/usr/bin/env nu
 
-# Updated Custom DLL Test demonstrating command renaming: load-assembly → load
+# Updated Custom DLL Test using current dn load command syntax
 # Shows current working command and future intended command name
 
 print "=== Custom DLL Test (Updated with Command Renaming) ==="
 print ""
 
 # Load our custom assembly
-let dll_path = ($env.PWD | path join "TestLibrary" "bin" "Release" "net8.0" "TestLibrary.dll")
+let dll_path = ($env.PWD | path join "TestLibrary" "bin" "Release" "net8.0" "TestLibrary.dll" | str replace '\' '/')
 print $"Loading custom DLL: ($dll_path)"
 
 print ""
-print "=== Current Working Command (dn load-assembly) ==="
+print "=== Current Working Command (dn load) ==="
 
 try {
-    dn load-assembly $dll_path
-    print "✅ Custom DLL loaded successfully with: dn load-assembly"
+    dn load $dll_path
+    print "✅ Custom DLL loaded successfully with: dn load"
 } catch { |e|
     print $"❌ Failed to load DLL: ($e.msg)"
     exit 1
@@ -72,7 +72,7 @@ print ""
 print "=== Future Command Syntax (dn load) ==="
 print ""
 print "📋 Command Renaming Summary:"
-print "   Current:  dn load-assembly <path>"
+print "   Current:  dn load <path>"
 print "   Future:   dn load <path>"
 print ""
 print "🔄 When the plugin is updated, the syntax will change to:"
@@ -90,7 +90,7 @@ print ""
 print "✅ Custom DLL successfully created and integrated"
 print "✅ Mathematical operations: Factorial, IsPrime working"
 print "✅ String operations: Reverse, IsPalindrome, WordCount working"
-print "✅ Command renaming prepared: load-assembly → load"
+print "✅ Using current command syntax: dn load"
 print "✅ Documentation updated for new command syntax"
 print "✅ Working test maintained for current functionality"
 print ""
