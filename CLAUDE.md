@@ -20,8 +20,10 @@ dotnet publish nu-plugin-dotnet.csproj -c Release
 ```
 
 ### Testing
+
+#### .NET Unit Tests (Protocol Library)
 ```bash
-# Run all tests
+# Run all .NET unit tests
 dotnet test NuPluginDotNet.sln
 
 # Run tests with verbose output
@@ -33,6 +35,31 @@ dotnet test NuPluginDotNet.Tests/
 # Run tests with filtering
 dotnet test --filter "FullyQualifiedName~ProtocolHandler"
 ```
+
+#### Plugin Integration Tests (Modern Nushell Testing)
+```bash
+# Run all plugin tests (recommended)
+nu run-tests.nu
+
+# Quick validation (smoke tests)
+nu run-tests.nu --suite smoke
+
+# Run specific test categories
+nu run-tests.nu --suite unit           # Core functionality
+nu run-tests.nu --suite integration    # End-to-end scenarios
+nu run-tests.nu --suite basic          # Basic object operations
+nu run-tests.nu --suite assembly       # Assembly discovery
+nu run-tests.nu --suite error          # Error handling
+nu run-tests.nu --suite dll            # Custom DLL integration
+
+# Performance testing
+nu run-tests.nu --suite performance
+```
+
+#### Test Structure
+- **`.NET Tests`** (`NuPluginDotNet.Tests/`): Protocol library unit tests
+- **`Plugin Tests`** (`tests/`): Modern Nushell integration tests using `std assert`
+- **`Legacy Tests`** (`examples/tests-legacy/`): Original test files (deprecated)
 
 ### Publishing
 ```bash

@@ -12,7 +12,10 @@
       "Bash(nu run-all-tests:*)",
       "Bash(plugin add:*)",
       "Bash(nu:*)",
-      "Bash(echo:*)"
+      "Bash(echo:*)",
+      "WebFetch(domain:www.nushell.sh)",
+      "WebFetch(domain:github.com)",
+      "Bash(find:*)"
     ],
     "deny": []
   }

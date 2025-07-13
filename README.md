@@ -124,7 +124,9 @@ See the `examples/` directory for complete working examples:
 
 - **Simple Plugin** (`examples/simple-plugin/`): Demonstrates basic plugin creation with hello, add, and greet commands
 
-## Building This Repository
+## Building and Testing This Repository
+
+### Building
 
 ```bash
 # Build the solution (includes protocol library and main plugin)
@@ -136,10 +138,147 @@ dotnet build NuPluginDotNet.Protocol/
 # Build just the main plugin
 dotnet build nu-plugin-dotnet.csproj
 
+# Build for release (single-file deployment)
+dotnet publish nu-plugin-dotnet.csproj -c Release
+
 # Build the example
 cd examples/simple-plugin
 dotnet build
 ```
+
+### Testing
+
+This project uses modern Nushell testing patterns with `std assert` for reliable, maintainable tests.
+
+#### Quick Start Testing
+
+```bash
+# Run all tests
+nu run-tests.nu
+
+# Quick validation (smoke tests)
+nu run-tests.nu --suite smoke
+
+# Run specific test categories
+nu run-tests.nu --suite unit
+nu run-tests.nu --suite integration
+```
+
+#### Available Test Suites
+
+| Suite | Description | Purpose |
+|-------|-------------|---------|
+| `all` | Complete test suite | Full validation (default) |
+| `smoke` | Quick functionality check | CI/CD validation |
+| `unit` | Unit tests only | Core functionality |
+| `integration` | Integration tests | End-to-end scenarios |
+| `performance` | Performance benchmarks | Speed validation |
+
+#### Individual Test Categories
+
+```bash
+# Basic functionality tests
+nu run-tests.nu --suite basic
+
+# Assembly and type discovery tests  
+nu run-tests.nu --suite assembly
+
+# Error handling and edge cases
+nu run-tests.nu --suite error
+
+# Custom DLL integration tests
+nu run-tests.nu --suite dll
+```
+
+#### Test Structure
+
+```
+tests/
+├── mod.nu                          # Main test module
+├── unit/                           # Unit tests
+│   ├── basic-functionality.nu      # Object creation, method calls
+│   ├── assembly-operations.nu      # Assembly/type discovery  
+│   └── error-handling.nu          # Error cases and validation
+├── integration/                    # Integration tests
+│   └── custom-dll.nu              # End-to-end DLL scenarios
+└── simple-modern-tests.nu         # Standalone modern test example
+```
+
+#### Modern Testing Features
+
+Our test suite demonstrates Nushell testing best practices:
+
+- ✅ **`std assert`** - Official Nushell assertion library
+- ✅ **AAA Pattern** - Arrange, Act, Assert structure
+- ✅ **Descriptive Names** - Clear test descriptions
+- ✅ **Error Testing** - Comprehensive error validation
+- ✅ **Conditional Tests** - Skip tests when dependencies unavailable
+- ✅ **Modular Structure** - Organized by functionality
+- ✅ **CI/CD Ready** - Exit codes and automation support
+
+#### Example Test Output
+
+```
+🧪 Nu Plugin .NET - Comprehensive Test Suite
+=============================================
+
+✅ Plugin verified and available
+
+🎯 Running Basic Functionality Tests
+====================================
+🧪 Running 18 basic functionality tests...
+
+  ✅ test dn-new creates StringBuilder
+  ✅ test dn-new creates ArrayList
+  ✅ test dn-call static Math.Max
+  ✅ test dn-get string Length
+  ...
+
+📊 Basic Tests: 18 passed, 0 failed
+✅ All basic functionality tests passed!
+
+📊 FINAL TEST SUMMARY
+=====================
+🎉 ALL TEST SUITES PASSED!
+
+✅ Plugin Status: PRODUCTION READY
+✅ All core functionality verified
+✅ Error handling robust
+✅ Custom DLL integration working
+```
+
+#### CI/CD Integration
+
+The test suite is designed for automation:
+
+```yaml
+# GitHub Actions example
+- name: Run Tests
+  run: |
+    nu run-tests.nu --suite smoke  # Quick validation
+    nu run-tests.nu --suite all    # Full test suite
+```
+
+#### Writing New Tests
+
+Follow modern Nushell patterns:
+
+```nu
+use std assert
+
+def "test my new feature" [] {
+    # Arrange
+    let input = "test data"
+    
+    # Act
+    let result = (dn new "MyType")
+    
+    # Assert
+    assert ($result | str contains "expected")
+}
+```
+
+For more details, see `docs/testing-best-practices.md`.
 
 ## Architecture
 
