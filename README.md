@@ -32,10 +32,15 @@ The original nu-plugin-dotnet that provides .NET integration commands for nushel
 **Location**: Root directory
 
 **Commands**:
-- `dotnet-obj` - Create and manipulate .NET objects
-- `dotnet-call` - Call methods on .NET objects  
-- `dotnet-new` - Create new .NET objects
-- `dotnet-load` - Load .NET assemblies
+- `dn new` - Create new .NET objects
+- `dn call` - Call methods on .NET objects
+- `dn get` - Get properties/fields from .NET objects
+- `dn set` - Set properties/fields on .NET objects
+- `dn obj` - Create and manipulate .NET objects
+- `dn load` - Load .NET assemblies
+- `dn assemblies` - List loaded assemblies
+- `dn types` - List types in assemblies
+- `dn members` - List members of types
 
 ## Quick Start - Creating Your Own Plugin
 
