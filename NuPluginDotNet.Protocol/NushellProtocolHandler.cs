@@ -39,14 +39,15 @@ public class NushellProtocolHandler
         
         try
         {
-            // Send Hello message immediately after encoding (following protocol specification)
-            await SendHelloMessageAsync();
-            
             // Set up Console I/O for JSON protocol
             Console.InputEncoding = System.Text.Encoding.UTF8;
             Console.OutputEncoding = System.Text.Encoding.UTF8;
             
-            // Read and respond to messages
+            // CRITICAL: Send Hello message immediately as required by protocol
+            // The plugin must send Hello first, then engine responds
+            await SendHelloMessageAsync();
+            
+            // Now wait for messages from nushell
             await ProcessMessagesAsync();
             
             WriteLog("Protocol communication ended normally");
@@ -60,7 +61,9 @@ public class NushellProtocolHandler
     }
 
     /// <summary>
-    /// Sends the initial Hello message as required by the protocol.
+    /// Sends the plugin's initial Hello message as required by the protocol.
+    /// This must be sent immediately after the encoding declaration.
+    /// The engine will respond with its own Hello message.
     /// </summary>
     private async Task SendHelloMessageAsync()
     {
@@ -75,7 +78,7 @@ public class NushellProtocolHandler
         };
         
         await SendMessageAsync(hello);
-        WriteLog("Hello message sent");
+        WriteLog("Plugin Hello message sent - waiting for engine response");
     }
 
     /// <summary>
@@ -172,12 +175,42 @@ public class NushellProtocolHandler
     }
 
     /// <summary>
-    /// Processes Hello messages (typically just acknowledgment).
+    /// Processes Hello messages (engine response to our Hello).
     /// </summary>
-    private async Task<object?> ProcessHelloMessageAsync(JsonElement helloElement)
+    private Task<object?> ProcessHelloMessageAsync(JsonElement helloElement)
     {
-        WriteLog("Received Hello message - no response needed (already sent ours)");
-        return null; // We already sent our Hello at startup
+        WriteLog("Received Hello message from engine - validating handshake completion");
+        
+        try
+        {
+            // Validate the engine's Hello response
+            var protocol = helloElement.GetProperty("protocol").GetString();
+            var version = helloElement.GetProperty("version").GetString();
+            var features = helloElement.GetProperty("features");
+            
+            // Validate protocol compatibility
+            if (protocol != "nu-plugin")
+            {
+                WriteLog($"ERROR: Invalid protocol received: {protocol}");
+                throw new InvalidOperationException($"Invalid protocol: {protocol}. Expected 'nu-plugin'");
+            }
+            
+            WriteLog($"Handshake completed successfully. Engine version: {version}");
+            
+            // Log features if any
+            if (features.ValueKind == JsonValueKind.Array && features.GetArrayLength() > 0)
+            {
+                WriteLog($"Engine features: {features}");
+            }
+            
+            // No response needed - handshake is complete
+            return Task.FromResult<object?>(null);
+        }
+        catch (Exception ex)
+        {
+            WriteLog($"Error processing Hello message: {ex.Message}");
+            throw;
+        }
     }
 
     /// <summary>

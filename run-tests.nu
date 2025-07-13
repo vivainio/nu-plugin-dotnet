@@ -14,12 +14,35 @@ def main [
         print ""
     }
     
-    # Check if plugin is available
+    # Auto-register plugin if not available
     if not (which dn | is-not-empty) {
-        print "❌ nu-plugin-dotnet not found. Please install and register the plugin:"
-        print "   1. Build the plugin: dotnet build"  
-        print "   2. Register with nushell: plugin add target/debug/nu_plugin_dotnet.exe"
-        exit 1
+        print "🔧 Plugin not registered, attempting to register..."
+        
+        # Find the plugin executable
+        let plugin_path = ($env.PWD | path join "bin" "Debug" "net8.0" "win-x64" "nu_plugin_dotnet.exe")
+        
+        if not ($plugin_path | path exists) {
+            print "❌ Plugin executable not found. Please build first:"
+            print "   dotnet build NuPluginDotNet.sln"
+            exit 1
+        }
+        
+        # Register the plugin
+        try {
+            plugin add $plugin_path
+            print "✅ Plugin registered successfully"
+        } catch { |e|
+            print $"❌ Failed to register plugin: ($e.msg)"
+            print "Please try manually:"
+            print $"   plugin add ($plugin_path)"
+            exit 1
+        }
+        
+        # Verify plugin is now available
+        if not (which dn | is-not-empty) {
+            print "❌ Plugin registration failed - commands not available"
+            exit 1
+        }
     }
     
     # Run the appropriate test suite
