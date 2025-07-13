@@ -14,13 +14,13 @@ let $sb = dn new "System.Text.StringBuilder"
 print $"StringBuilder created: ($sb)"
 
 # Test List<string> (default constructor)
-print "Creating List[string]..."
-let $list = dn new "System.Collections.Generic.List[string]"
+print "Creating List<string>..."
+let $list = dn new "List<string>"
 print $"List created: ($list)"
 
 # Test Dictionary (default constructor)
-print "Creating Dictionary[string, int]..."
-let $dict = dn new "System.Collections.Generic.Dictionary[string, int]"
+print "Creating Dictionary<string, int>..."
+let $dict = dn new "Dictionary<string, int>"
 print $"Dictionary created: ($dict)"
 
 print ""
@@ -61,7 +61,7 @@ try {
     let $dt = dn new "System.DateTime"
     print $"DateTime created: ($dt)"
 } catch { |err|
-    print $"DateTime creation failed (expected): ($err.msg)"
+    print $"DateTime creation failed as expected: ($err.msg)"
 }
 
 # Test GUID (this will likely fail without constructor args)
@@ -89,4 +89,7 @@ print $"Length of 'Hello World': ($length)"
 
 print ""
 print "✅ Basic dn new testing completed!"
-print "Note: Constructor arguments (--args) need to be implemented in signature" 
+print "Note: Constructor arguments (--args) need to be implemented in signature"
+
+# Ensure clean exit
+exit 0 

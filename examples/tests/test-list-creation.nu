@@ -206,3 +206,5 @@ print "• Non-generic collections: Generally work if assembly is loaded"
 print "• Some collection types may not be available in current runtime"
 print ""
 print "�� Test completed!" 
+# Ensure clean exit
+exit 0

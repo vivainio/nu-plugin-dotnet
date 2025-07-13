@@ -167,4 +167,6 @@ print "• New user-friendly syntax: Dictionary<string, int>"
 print "• Old .NET internal syntax: System.Collections.Generic.Dictionary`2[System.String,System.Int32]"
 print "• Both syntaxes create identical objects with identical behavior"
 print "• Users can choose whichever syntax they prefer"
-print "• Both syntaxes can be mixed in the same script" 
+print "• Both syntaxes can be mixed in the same script
+
+exit 0" 

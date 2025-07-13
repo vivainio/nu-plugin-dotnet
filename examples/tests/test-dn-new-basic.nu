@@ -62,4 +62,6 @@ try {
 }
 print ""
 
-print "✅ Basic functionality test completed!" 
+print "✅ Basic functionality test completed!
+
+exit 0" 

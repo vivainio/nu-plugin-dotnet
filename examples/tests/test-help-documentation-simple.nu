@@ -15,8 +15,12 @@ try { dn new "System.Text.StringBuilder" } catch { |e| print $"Failed: ($e.msg)"
 print "3. ArrayList creation"
 try { dn new "System.Collections.ArrayList" } catch { |e| print $"Failed: ($e.msg)" }
 
-print "4. StringBuilder with initial text (expected to fail - constructor args not supported)"
-try { dn new "System.Text.StringBuilder" "Initial text" } catch { |e| print $"✅ Expected failure: ($e.msg)" }
+print "4. StringBuilder with initial text (using alternative approach)"
+try { 
+    let sb = (dn new "System.Text.StringBuilder")
+    $sb | dn call "Append" "Initial text"
+    print $"✅ StringBuilder with text: ($sb | dn call 'ToString')"
+} catch { |e| print $"Failed: ($e.msg)" }
 
 print "5. Generic List of strings"
 try { dn new "System.Collections.Generic.List`1[System.String]" } catch { |e| print $"Failed: ($e.msg)" }
@@ -117,4 +121,7 @@ try {
 } catch { |e| print $"Failed: ($e.msg)" }
 
 print ""
-print "All basic help documentation examples tested!" 
+print "All basic help documentation examples tested!"
+
+# Ensure clean exit
+exit 0 

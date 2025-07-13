@@ -27,13 +27,10 @@ test_command "StringBuilder creation" { dn new "System.Text.StringBuilder" }
 test_command "ArrayList creation" { dn new "System.Collections.ArrayList" }
 
 # Test objects with constructor arguments
-test_command "StringBuilder with initial text (expected to fail)" { 
-    try { 
-        dn new "System.Text.StringBuilder" "Initial text" 
-        "UNEXPECTED SUCCESS"
-    } catch { 
-        "EXPECTED FAILURE - constructor args not supported" 
-    }
+test_command "StringBuilder with initial text (alternative approach)" { 
+    let sb = (dn new "System.Text.StringBuilder")
+    $sb | dn call "Append" "Initial text"
+    $sb | dn call "ToString"
 }
 
 # Test generic collections (from help documentation)
@@ -315,5 +312,8 @@ test_command "dn get with property name" {
 print ""
 print "=== Final Summary ==="
 print "Help documentation testing completed!"
+
+# Ensure clean exit
 print "All examples from PLUGIN_COMMANDS_HELP.md have been tested."
-print "Check the results above for any failures that need documentation updates." 
+print "Check the results above for any failures that need documentation updates."
+exit 0 

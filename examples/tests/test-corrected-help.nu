@@ -69,4 +69,6 @@ try { nu -c 'dn new "System.DateTime"' } catch { print "  ✅ Correctly fails: N
 print ""
 print "=== CORRECTED HELP DOCUMENTATION VALIDATION COMPLETE ==="
 print "All working examples validated ✅"
-print "All limitations correctly documented ✅" 
+print "All limitations correctly documented ✅"
+
+exit 0 

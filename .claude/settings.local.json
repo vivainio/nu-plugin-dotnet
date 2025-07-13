@@ -11,7 +11,8 @@
       "Bash(rm:*)",
       "Bash(nu run-all-tests:*)",
       "Bash(plugin add:*)",
-      "Bash(nu:*)"
+      "Bash(nu:*)",
+      "Bash(echo:*)"
     ],
     "deny": []
   }

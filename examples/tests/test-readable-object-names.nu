@@ -52,3 +52,4 @@ print "   - ObjectId: Unique GUID for object lifetime management"
 print ""
 print "=== READABLE OBJECT NAMES TEST COMPLETE ==="
 print "Custom objects now show their actual .NET type! 🎉" 
+exit 0

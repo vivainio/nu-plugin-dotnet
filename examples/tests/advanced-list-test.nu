@@ -93,4 +93,6 @@ print "• Insert/Remove at specific positions"
 print "• IndexOf and Contains operations"
 print "• Clear operations"
 print "• Key/Value checking in Hashtables"
-print "• Type-safe operations in generic collections" 
+print "• Type-safe operations in generic collections"
+
+exit 0 

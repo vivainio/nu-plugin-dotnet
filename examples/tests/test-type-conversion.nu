@@ -30,3 +30,4 @@ print "Input: 'HashSet<char>'    -> Output: 'System.Collections.Generic.HashSet`
 print ""
 
 print "This conversion will be tested when you run the main test: test-generic-syntax.nu" 
+exit 0

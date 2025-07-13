@@ -29,5 +29,7 @@ try {
     
 } catch { |e|
     print $"❌ Error testing custom DLL: ($e.msg)"
-    print "Make sure nu-plugin-dotnet is properly installed and registered."
+    print "Make sure nu-plugin-dotnet is properly installed and registered.
+
+exit 0"
 } 

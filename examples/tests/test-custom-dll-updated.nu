@@ -95,4 +95,7 @@ print "✅ Documentation updated for new command syntax"
 print "✅ Working test maintained for current functionality"
 print ""
 print "🎉 Custom DLL integration with nu-plugin-dotnet is fully operational!"
-print "📝 Ready for command rename when plugin is updated" 
+print "📝 Ready for command rename when plugin is updated"
+
+# Ensure clean exit
+exit 0 

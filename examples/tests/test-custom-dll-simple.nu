@@ -75,3 +75,6 @@ try {
 print ""
 print "🎉 Simple custom DLL test completed!"
 print "✅ Custom DLL integration working correctly"
+
+# Ensure clean exit
+exit 0

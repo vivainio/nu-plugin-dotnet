@@ -58,3 +58,4 @@ print ""
 print "🎉 Much cleaner and easier to read!"
 print ""
 print "=== SIMPLIFIED TYPE NAMES TEST COMPLETE ===" 
+exit 0

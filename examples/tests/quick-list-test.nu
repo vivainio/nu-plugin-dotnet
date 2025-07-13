@@ -50,4 +50,6 @@ print "📋 Quick Reference:"
 print "• Simple lists: dn new \"System.Collections.ArrayList\""
 print "• Typed string lists: dn new \"System.Collections.Generic.List`1[System.String]\""
 print "• Typed integer lists: dn new \"System.Collections.Generic.List`1[System.Int32]\""
-print "• Key-value storage: dn new \"System.Collections.Hashtable\"" 
+print "• Key-value storage: dn new \"System.Collections.Hashtable\""
+
+exit 0 

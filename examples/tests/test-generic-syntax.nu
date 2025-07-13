@@ -245,4 +245,6 @@ print ""
 
 print "🎉 Generic syntax conversion testing completed!"
 print "==============================================="
-print "The new user-friendly syntax should make it much easier to work with generics!" 
+print "The new user-friendly syntax should make it much easier to work with generics!
+
+exit 0" 

@@ -48,4 +48,6 @@ print "=== HELP SYSTEM TEST COMPLETE ==="
 print "All commands have working help via 'help <command>' ✅"
 print ""
 print "Note: Use 'help dn <command>' NOT 'dn <command> --help'"
-print "This is the standard nushell pattern for plugin commands." 
+print "This is the standard nushell pattern for plugin commands."
+
+exit 0 

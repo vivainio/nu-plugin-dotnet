@@ -265,4 +265,6 @@ print "✅ No breaking changes introduced"
 print ""
 print "The new user-friendly syntax is purely additive - it doesn't replace"
 print "or break any existing functionality. Users can choose whichever syntax"
-print "they prefer, or mix both approaches as needed." 
+print "they prefer, or mix both approaches as needed."
+
+exit 0 

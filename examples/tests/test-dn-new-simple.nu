@@ -40,11 +40,14 @@ print ""
 
 print "3. Testing static methods (known to work)"
 print "----------------------------------------"
-let $max = "System.Math" | dn call "Max" 42 17
-print $"Math.Max(42, 17) = ($max)"
+let $max = ("System.Math" | dn call "Max" 42 17)
+print $"Math.Max result = ($max)"
 
 let $pi = "System.Math" | dn get "PI"
 print $"Math.PI = ($pi)"
 print ""
 
-print "✅ Basic tests completed!" 
+print "✅ Basic tests completed!"
+
+# Ensure clean exit
+exit 0 

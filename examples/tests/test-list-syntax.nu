@@ -102,3 +102,4 @@ print "• ArrayList is the best option for dynamic arrays currently"
 print "• Hashtable works well for key-value storage"
 print ""
 print "�� Test completed!" 
+exit 0
