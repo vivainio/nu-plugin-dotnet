@@ -73,7 +73,8 @@ public class CommandRegistry
                 optionalPositional: GetOptionalPositionalTyped(commandName),
                 restPositional: GetRestPositionalTyped(commandName),
                 named: GetNamedParametersTyped(commandName),
-                inputOutputTypes: GetInputOutputTypes(commandName)
+                inputType: GetInputType(commandName),
+                outputType: GetOutputType(commandName)
             )
         ).ToArray();
     }
@@ -171,28 +172,45 @@ public class CommandRegistry
     {
         return commandName switch
         {
-            "dn new" or "dn call" or "dn get" or "dn set" => "Object Manipulation",
-            "dn load" or "dn assemblies" => "Assembly Management", 
-            "dn types" or "dn members" => "Type Inspection",
-            "dn obj" => "Data Conversion",
+            "dn new" or "dn call" or "dn get" or "dn set" => "Custom",
+            "dn load" or "dn assemblies" => "System", 
+            "dn types" or "dn members" => "System",
+            "dn obj" => "Conversions",
             _ => "Default"
         };
     }
 
-    private object[][] GetInputOutputTypes(string commandName)
+    private string GetInputType(string commandName)
     {
         return commandName switch
         {
-            "dn new" => new[] { InputOutput(NuTypes.Nothing, NuTypes.Any) },
-            "dn call" => new[] { InputOutput(NuTypes.Any, NuTypes.Any) },
-            "dn get" => new[] { InputOutput(NuTypes.Any, NuTypes.Any) },
-            "dn set" => new[] { InputOutput(NuTypes.Any, NuTypes.Any) },
-            "dn load" => new[] { InputOutput(NuTypes.Nothing, NuTypes.String) },
-            "dn assemblies" => new[] { InputOutput(NuTypes.Nothing, NuTypes.List) },
-            "dn types" => new[] { InputOutput(NuTypes.Nothing, NuTypes.List) },
-            "dn members" => new[] { InputOutput(NuTypes.Nothing, NuTypes.List) },
-            "dn obj" => new[] { InputOutput(NuTypes.Any, NuTypes.Any) },
-            _ => new[] { InputOutput(NuTypes.Any, NuTypes.Any) }
+            "dn new" => "Nothing",
+            "dn call" => "Any",
+            "dn get" => "Any",
+            "dn set" => "Any",
+            "dn load" => "Nothing",
+            "dn assemblies" => "Nothing",
+            "dn types" => "Nothing",
+            "dn members" => "Nothing",
+            "dn obj" => "Any",
+            _ => "Any"
+        };
+    }
+
+    private string GetOutputType(string commandName)
+    {
+        return commandName switch
+        {
+            "dn new" => "Any",
+            "dn call" => "Any",
+            "dn get" => "Any",
+            "dn set" => "Any",
+            "dn load" => "String",
+            "dn assemblies" => "List",
+            "dn types" => "List",
+            "dn members" => "List",
+            "dn obj" => "Any",
+            _ => "Any"
         };
     }
 }

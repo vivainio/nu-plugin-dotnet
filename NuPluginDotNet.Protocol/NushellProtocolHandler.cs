@@ -247,8 +247,8 @@ public class NushellProtocolHandler
                 
                 callResponse = callType switch
                 {
-                    "Signature" => await _commandHandler.HandleSignatureAsync(),
-                    "Metadata" => await _commandHandler.HandleMetadataAsync(),
+                    "Signature" => new { Signature = (await _commandHandler.HandleSignatureAsync()).Signature },
+                    "Metadata" => new { Metadata = await _commandHandler.HandleMetadataAsync() },
                     _ => CreateError($"Unknown call type: {callType}")
                 };
             }

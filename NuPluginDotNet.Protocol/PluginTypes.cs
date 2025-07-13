@@ -41,7 +41,9 @@ public class CommandSig
     public PositionalArg? rest_positional { get; set; }
     public bool vectorizes_over_list { get; set; } = false;
     public NamedArg[] named { get; set; } = Array.Empty<NamedArg>();
-    public object[][] input_output_types { get; set; } = Array.Empty<object[]>();
+    public string input_type { get; set; } = "Any";
+    public string output_type { get; set; } = "Any";
+    public object[] input_output_types { get; set; } = Array.Empty<object>();
     public bool allow_variants_without_examples { get; set; } = true;
     public bool is_filter { get; set; } = false;
     public bool creates_scope { get; set; } = false;
@@ -57,6 +59,8 @@ public class PositionalArg
     public required string name { get; set; }
     public required string desc { get; set; }
     public required object shape { get; set; }
+    public object? var_id { get; set; }
+    public object? default_value { get; set; }
 }
 
 /// <summary>
@@ -69,6 +73,8 @@ public class NamedArg
     public object? arg { get; set; }
     public bool required { get; set; } = false;
     public required string desc { get; set; }
+    public object? var_id { get; set; }
+    public object? default_value { get; set; }
 }
 
 /// <summary>
@@ -82,30 +88,30 @@ public class CommandExample
 }
 
 /// <summary>
-/// Nushell value types as objects for direct serialization.
+/// Nushell shape types for command signatures - these are simple strings as per the protocol specification.
 /// </summary>
 public static class NuTypes
 {
-    public static readonly object Nothing = new { Nothing = new object() };
-    public static readonly object Bool = new { Bool = new object() };
-    public static readonly object Int = new { Int = new object() };
-    public static readonly object Float = new { Float = new object() };
-    public static readonly object String = new { String = new object() };
-    public static readonly object Date = new { Date = new object() };
-    public static readonly object Duration = new { Duration = new object() };
-    public static readonly object Filesize = new { Filesize = new object() };
-    public static readonly object List = new { List = new object() };
-    public static readonly object Record = new { Record = new object() };
-    public static readonly object Block = new { Block = new object() };
-    public static readonly object Closure = new { Closure = new object() };
-    public static readonly object Error = new { Error = new object() };
-    public static readonly object Binary = new { Binary = new object() };
-    public static readonly object CellPath = new { CellPath = new object() };
-    public static readonly object Range = new { Range = new object() };
-    public static readonly object MatchPattern = new { MatchPattern = new object() };
-    public static readonly object LazyRecord = new { LazyRecord = new object() };
-    public static readonly object Glob = new { Glob = new object() };
-    public static readonly object Any = new { Any = new object() };
+    public static readonly object Nothing = "Nothing";
+    public static readonly object Bool = "Bool";
+    public static readonly object Int = "Int";
+    public static readonly object Float = "Float";
+    public static readonly object String = "String";
+    public static readonly object Date = "Date";
+    public static readonly object Duration = "Duration";
+    public static readonly object Filesize = "Filesize";
+    public static readonly object List = "List";
+    public static readonly object Record = "Record";
+    public static readonly object Block = "Block";
+    public static readonly object Closure = "Closure";
+    public static readonly object Error = "Error";
+    public static readonly object Binary = "Binary";
+    public static readonly object CellPath = "CellPath";
+    public static readonly object Range = "Range";
+    public static readonly object MatchPattern = "MatchPattern";
+    public static readonly object LazyRecord = "LazyRecord";
+    public static readonly object Glob = "Glob";
+    public static readonly object Any = "Any";
 }
 
 /// <summary>
@@ -265,13 +271,7 @@ public static class CommandHelpers
         };
     }
 
-    /// <summary>
-    /// Create an input/output type pair.
-    /// </summary>
-    public static object[] InputOutput(object input, object output)
-    {
-        return new[] { input, output };
-    }
+
 
     /// <summary>
     /// Create a command signature.
@@ -283,7 +283,8 @@ public static class CommandHelpers
         PositionalArg[]? optionalPositional = null,
         PositionalArg? restPositional = null,
         NamedArg[]? named = null,
-        object[][]? inputOutputTypes = null,
+        string inputType = "Any",
+        string outputType = "Any",
         string category = "Default",
         string[]? searchTerms = null,
         CommandExample[]? examples = null)
@@ -299,7 +300,9 @@ public static class CommandHelpers
                 optional_positional = optionalPositional ?? Array.Empty<PositionalArg>(),
                 rest_positional = restPositional,
                 named = named ?? Array.Empty<NamedArg>(),
-                input_output_types = inputOutputTypes ?? new[] { InputOutput(NuTypes.Any, NuTypes.Any) },
+                input_type = inputType,
+                output_type = outputType,
+                input_output_types = Array.Empty<object>(),
                 category = category
             },
             examples = examples ?? Array.Empty<CommandExample>()
