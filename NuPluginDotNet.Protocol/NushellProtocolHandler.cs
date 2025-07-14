@@ -72,7 +72,7 @@ public class NushellProtocolHandler
             Hello = new
             {
                 protocol = "nu-plugin",
-                version = "0.104.0",
+                version = "0.105.2",
                 features = new object[] { }
             }
         };
@@ -258,15 +258,29 @@ public class NushellProtocolHandler
                 if (callObj.TryGetProperty("Run", out var runElement))
                 {
                     WriteLog($"Processing Run call - ID: {callId}");
-                    callResponse = await _commandHandler.HandleRunAsync(runElement);
+                    var runResult = await _commandHandler.HandleRunAsync(runElement);
                     
                     // Debug the response before it gets wrapped
-                    File.AppendAllText(debugLogFile, $"[{DateTime.Now:HH:mm:ss.fff}] [PROTOCOL] HandleRunAsync returned type: {callResponse?.GetType()}\n");
-                    File.AppendAllText(debugLogFile, $"[{DateTime.Now:HH:mm:ss.fff}] [PROTOCOL] HandleRunAsync returned: {callResponse}\n");
+                    File.AppendAllText(debugLogFile, $"[{DateTime.Now:HH:mm:ss.fff}] [PROTOCOL] HandleRunAsync returned type: {runResult?.GetType()}\n");
+                    File.AppendAllText(debugLogFile, $"[{DateTime.Now:HH:mm:ss.fff}] [PROTOCOL] HandleRunAsync returned: {runResult}\n");
                     
                     // Serialize just the response to see what it looks like
-                    var responseJson = JsonSerializer.Serialize(callResponse, new JsonSerializerOptions { WriteIndented = true });
+                    var responseJson = JsonSerializer.Serialize(runResult, new JsonSerializerOptions { WriteIndented = true });
                     File.AppendAllText(debugLogFile, $"[{DateTime.Now:HH:mm:ss.fff}] [PROTOCOL] HandleRunAsync response JSON:\n{responseJson}\n");
+                    
+                    // Check if the result is an error by examining its structure
+                    var resultType = runResult?.GetType();
+                    if (resultType?.GetProperty("Error") != null)
+                    {
+                        // Errors are returned as-is
+                        callResponse = runResult;
+                    }
+                    else
+                    {
+                        // For successful results, wrap in the correct PipelineData format
+                        // According to the protocol specification, Value should be the top-level variant
+                        callResponse = new { Value = runResult };
+                    }
                 }
                 else
                 {

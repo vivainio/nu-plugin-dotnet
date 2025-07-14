@@ -50,7 +50,7 @@ public class SimplePluginTyped : IPluginCommandHandler
                     description: "Says hello to the world",
                     category: "Experimental",
                     searchTerms: new[] { "greeting", "hello" },
-                    inputOutputTypes: new[] { InputOutput(NuTypes.Nothing, NuTypes.String) }
+                    outputType: "String"
                 ),
                 
                 Command(
@@ -63,7 +63,7 @@ public class SimplePluginTyped : IPluginCommandHandler
                         Positional("a", "First number", NuTypes.Int),
                         Positional("b", "Second number", NuTypes.Int)
                     },
-                    inputOutputTypes: new[] { InputOutput(NuTypes.Nothing, NuTypes.Int) }
+                    outputType: "Int"
                 ),
                 
                 Command(
@@ -75,7 +75,7 @@ public class SimplePluginTyped : IPluginCommandHandler
                     {
                         Positional("name", "Name to greet", NuTypes.String)
                     },
-                    inputOutputTypes: new[] { InputOutput(NuTypes.Nothing, NuTypes.String) }
+                    outputType: "String"
                 )
             }
         };
@@ -97,17 +97,20 @@ public class SimplePluginTyped : IPluginCommandHandler
             var name = runElement.GetProperty("name").GetString() ?? "";
             
             // Route to appropriate command handler
-            return name switch
+            var result = name switch
             {
                 "hello" => HandleHelloCommand(runElement),
                 "add" => HandleAddCommand(runElement),
                 "greet" => HandleGreetCommand(runElement),
                 _ => NuValues.Error($"Unknown command: {name}")
             };
+
+            // Return the result directly - the protocol handler will wrap it correctly
+            return result;
         }
         catch (Exception ex)
         {
-            return NuValues.Error($"Error executing command: {ex.Message}");
+            return NuValues.Error($"Error handling command: {ex.Message}");
         }
     }
 

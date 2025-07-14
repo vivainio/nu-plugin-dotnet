@@ -68,13 +68,13 @@ public class CommandRegistry
             Command(
                 name: commandName,
                 description: GetCommandDescription(commandName),
-                category: GetCommandCategory(commandName),
                 requiredPositional: GetRequiredPositionalTyped(commandName),
                 optionalPositional: GetOptionalPositionalTyped(commandName),
                 restPositional: GetRestPositionalTyped(commandName),
                 named: GetNamedParametersTyped(commandName),
                 inputType: GetInputType(commandName),
-                outputType: GetOutputType(commandName)
+                outputType: GetOutputType(commandName),
+                category: GetCommandCategory(commandName)
             )
         ).ToArray();
     }
