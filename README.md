@@ -4,7 +4,7 @@ A nushell plugin that enables .NET integration and provides a reusable protocol 
 
 ## Maintenance status
 
-This research project is currently **on hiatus** as there is to stable JSON api for Nushell plugins at this time. It would not be feasible to
+This research project is currently **on hold** as there is to stable JSON api for Nushell plugins at this time. It would not be feasible to
 maintain this across protocol compatibility breaks.
 
 ## Project Structure
