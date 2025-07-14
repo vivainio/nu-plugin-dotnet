@@ -2,11 +2,6 @@
 
 A nushell plugin that enables .NET integration and provides a reusable protocol library for creating nushell plugins in .NET.
 
-## Maintenance status
-
-This research project is currently **on hold** as there is to stable JSON api for Nushell plugins at this time. It would not be feasible to
-maintain this across protocol compatibility breaks.
-
 ## Project Structure
 
 This repository contains two main components:
