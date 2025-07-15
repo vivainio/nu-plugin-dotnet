@@ -278,8 +278,9 @@ public class NushellProtocolHandler
                     else
                     {
                         // For successful results, wrap in PipelineData format for nushell 0.105+
-                        // PipelineDataHeader::Value is a tuple variant: ["Value", [result, metadata]]
-                        callResponse = new { PipelineData = new object[] { "Value", new object[] { runResult, null } } };
+                        // Based on Rust types: PluginCallResponse::PipelineData(PipelineDataHeader::Value(Value, Option<PipelineMetadata>))
+                        // Rust tuple variants serialize as: {"Variant": [field1, field2, ...]}
+                        callResponse = new { PipelineData = new { Value = new object[] { runResult, null } } };
                     }
                 }
                 else

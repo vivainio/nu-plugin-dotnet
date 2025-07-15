@@ -1,0 +1,29 @@
+---
+globs: src/**/*.cs,Program.cs,NuPluginDotNet.Protocol/**/*.cs,*.csproj
+description: Testing reminder for plugin code changes
+---
+
+# Plugin Testing Reminder
+
+⚠️ **IMPORTANT**: After making any changes to the plugin code, always run the test script to ensure everything is working:
+
+```bash
+nu test-minimal.nu
+```
+
+This script will:
+1. Build the project (`dotnet build NuPluginDotNet.sln`)
+2. Load the plugin (`plugin add ./bin/Debug/net8.0/win-x64/nu_plugin_dotnet.exe`)
+3. Test basic functionality (`dn new "System.Object"`)
+
+
+## Debug Mode:
+If you encounter issues, enable debug logging:
+```bash
+$env:NU_PLUGIN_DOTNET_DEBUG="true"; nu test-minimal.nu
+```
+
+Always check the logs if the plugin fails.
+
+
+**Remember**: Always test after code changes to catch issues early!
