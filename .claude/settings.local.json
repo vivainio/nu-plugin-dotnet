@@ -15,7 +15,9 @@
       "Bash(echo:*)",
       "WebFetch(domain:www.nushell.sh)",
       "WebFetch(domain:github.com)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(dotnet build:*)",
+      "Bash(\"C:\\r\\nu-plugin-dotnet\\bin\\Debug\\net8.0\\win-x64\\nu_plugin_dotnet.exe\" --help)"
     ],
     "deny": []
   }

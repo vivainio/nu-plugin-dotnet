@@ -277,9 +277,9 @@ public class NushellProtocolHandler
                     }
                     else
                     {
-                        // For successful results, wrap in the correct PipelineData format
-                        // According to the protocol specification, Value should be the top-level variant
-                        callResponse = new { Value = runResult };
+                        // For successful results, wrap in PipelineData format for nushell 0.105+
+                        // PipelineDataHeader::Value is a tuple variant: ["Value", [result, metadata]]
+                        callResponse = new { PipelineData = new object[] { "Value", new object[] { runResult, null } } };
                     }
                 }
                 else
