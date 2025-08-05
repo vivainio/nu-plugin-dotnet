@@ -126,6 +126,7 @@ jobs:
     
     - name: Run unit tests with coverage
       run: |
+        mkdir -p TestResults
         dotnet test NuPluginDotNet.Tests/NuPluginDotNet.Tests.csproj \
           --no-build -c Debug \
           --verbosity normal \
@@ -143,6 +144,7 @@ jobs:
         path: TestResults/*.trx
         reporter: dotnet-trx
         fail-on-error: false  # Don't fail the workflow on test report generation issues
+      continue-on-error: true  # Don't fail the job if test report generation fails
     
     - name: Upload test results
       uses: actions/upload-artifact@v4
