@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace NuPluginDotNet.Protocol;
 
@@ -69,11 +70,20 @@ public class PositionalArg
 public class NamedArg
 {
     public required string @long { get; set; }
+    
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? @short { get; set; }
+    
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public object? arg { get; set; }
+    
     public bool required { get; set; } = false;
     public required string desc { get; set; }
+    
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public object? var_id { get; set; }
+    
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public object? default_value { get; set; }
 }
 
@@ -261,14 +271,21 @@ public static class CommandHelpers
     /// </summary>
     public static NamedArg Named(string longName, string description, string? shortName = null, object? argType = null, bool required = false)
     {
-        return new NamedArg
+        var namedArg = new NamedArg
         {
             @long = longName,
             @short = shortName,
-            arg = argType,
             required = required,
             desc = description
         };
+        
+        // Only set arg if it's not null
+        if (argType != null)
+        {
+            namedArg.arg = argType;
+        }
+        
+        return namedArg;
     }
 
 
