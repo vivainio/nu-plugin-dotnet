@@ -63,12 +63,12 @@ jobs:
     
     - name: Restore dependencies
       if: steps.should_build.outputs.build == 'true'
-      run: dotnet restore
+      run: dotnet restore NuPluginDotNet.sln
     
     - name: Build and publish
       if: steps.should_build.outputs.build == 'true'
       run: |
-        dotnet publish -c Release -r ${{ matrix.runtime }} --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=true -o ./publish/
+        dotnet publish nu-plugin-dotnet.csproj -c Release -r ${{ matrix.runtime }} --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=true -o ./publish/ --no-restore
     
     - name: Verify binary
       if: steps.should_build.outputs.build == 'true'
