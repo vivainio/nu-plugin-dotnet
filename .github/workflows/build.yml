@@ -64,7 +64,7 @@ jobs:
     
     - name: Publish self-contained binary
       run: |
-        dotnet publish nu-plugin-dotnet.csproj -c Release -r ${{ matrix.runtime }} --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=true -o ./publish/${{ matrix.runtime }}
+        dotnet publish nu-plugin-dotnet.csproj -c Release -r ${{ matrix.runtime }} --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=true -o ./publish/${{ matrix.runtime }} --no-restore
     
     - name: Verify binary exists (Windows)
       if: matrix.os == 'windows-latest'
