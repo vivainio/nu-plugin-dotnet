@@ -2,9 +2,9 @@ name: Build and Test
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
   workflow_dispatch:
 
 jobs:
@@ -12,7 +12,7 @@ jobs:
     name: Build on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false  # Allow other platforms to continue even if one fails
+      fail-fast: false # Allow other platforms to continue even if one fails
       matrix:
         include:
           - os: windows-latest
@@ -24,269 +24,271 @@ jobs:
           - os: macos-latest
             runtime: osx-arm64
             artifact: nu_plugin_dotnet
-          - os: macos-13  # Intel Mac
+          - os: macos-13 # Intel Mac
             runtime: osx-x64
             artifact: nu_plugin_dotnet
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: '8.0.x'
-    
-    - name: Cache NuGet packages
-      uses: actions/cache@v4
-      with:
-        path: ~/.nuget/packages
-        key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
-        restore-keys: |
-          ${{ runner.os }}-nuget-
-    
-    - name: Restore dependencies
-      run: dotnet restore NuPluginDotNet.sln
-    
-    - name: Build Debug
-      run: dotnet build NuPluginDotNet.sln -c Debug --no-restore
-    
-    - name: Build Release
-      run: dotnet build NuPluginDotNet.sln -c Release --no-restore
-    
-    - name: Run C# Unit Tests
-      run: dotnet test NuPluginDotNet.Tests/NuPluginDotNet.Tests.csproj --no-build -c Debug --verbosity normal --logger trx --results-directory TestResults
-    
-    - name: Upload test results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: test-results-${{ matrix.os }}-${{ github.sha }}
-        path: TestResults/*.trx
-        retention-days: 7
-    
-    - name: Publish self-contained binary
-      run: |
-        dotnet publish nu-plugin-dotnet.csproj -c Release -r ${{ matrix.runtime }} --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=true -o ./publish/${{ matrix.runtime }} --no-restore
-    
-    - name: Verify binary exists (Windows)
-      if: matrix.os == 'windows-latest'
-      run: |
-        if (Test-Path "./publish/${{ matrix.runtime }}/${{ matrix.artifact }}") {
-          Write-Host "✅ Binary created successfully: ${{ matrix.artifact }}"
-          Get-Item "./publish/${{ matrix.runtime }}/${{ matrix.artifact }}" | Format-List Name, Length, LastWriteTime
-        } else {
-          Write-Error "❌ Binary not found: ${{ matrix.artifact }}"
-          exit 1
-        }
-      shell: pwsh
-    
-    - name: Verify binary exists (Unix)
-      if: matrix.os != 'windows-latest'
-      run: |
-        if [ -f "./publish/${{ matrix.runtime }}/${{ matrix.artifact }}" ]; then
-          echo "✅ Binary created successfully: ${{ matrix.artifact }}"
-          ls -la "./publish/${{ matrix.runtime }}/${{ matrix.artifact }}"
-          file "./publish/${{ matrix.runtime }}/${{ matrix.artifact }}"
-        else
-          echo "❌ Binary not found: ${{ matrix.artifact }}"
-          exit 1
-        fi
-    
-    - name: Upload build artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: nu-plugin-dotnet-${{ matrix.runtime }}-${{ github.sha }}
-        path: ./publish/${{ matrix.runtime }}/${{ matrix.artifact }}
-        retention-days: 7
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Restore dependencies
+        run: dotnet restore NuPluginDotNet.sln
+
+      - name: Build Debug
+        run: dotnet build NuPluginDotNet.sln -c Debug --no-restore
+
+      - name: Build Release
+        run: dotnet build NuPluginDotNet.sln -c Release --no-restore
+
+      - name: Run C# Unit Tests
+        run: |
+          mkdir -p TestResults
+          dotnet test NuPluginDotNet.Tests/NuPluginDotNet.Tests.csproj --no-build -c Debug --verbosity normal --logger trx --results-directory TestResults --no-restore
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-${{ matrix.os }}-${{ github.sha }}
+          path: TestResults/*.trx
+          retention-days: 7
+
+      - name: Publish self-contained binary
+        run: |
+          dotnet publish nu-plugin-dotnet.csproj -c Release -r ${{ matrix.runtime }} --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=true -o ./publish/${{ matrix.runtime }} --no-restore
+
+      - name: Verify binary exists (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          if (Test-Path "./publish/${{ matrix.runtime }}/${{ matrix.artifact }}") {
+            Write-Host "✅ Binary created successfully: ${{ matrix.artifact }}"
+            Get-Item "./publish/${{ matrix.runtime }}/${{ matrix.artifact }}" | Format-List Name, Length, LastWriteTime
+          } else {
+            Write-Error "❌ Binary not found: ${{ matrix.artifact }}"
+            exit 1
+          }
+        shell: pwsh
+
+      - name: Verify binary exists (Unix)
+        if: matrix.os != 'windows-latest'
+        run: |
+          if [ -f "./publish/${{ matrix.runtime }}/${{ matrix.artifact }}" ]; then
+            echo "✅ Binary created successfully: ${{ matrix.artifact }}"
+            ls -la "./publish/${{ matrix.runtime }}/${{ matrix.artifact }}"
+            file "./publish/${{ matrix.runtime }}/${{ matrix.artifact }}"
+          else
+            echo "❌ Binary not found: ${{ matrix.artifact }}"
+            exit 1
+          fi
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: nu-plugin-dotnet-${{ matrix.runtime }}-${{ github.sha }}
+          path: ./publish/${{ matrix.runtime }}/${{ matrix.artifact }}
+          retention-days: 7
 
   unit-tests:
     name: Unit Tests
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: '8.0.x'
-    
-    - name: Cache NuGet packages
-      uses: actions/cache@v4
-      with:
-        path: ~/.nuget/packages
-        key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
-        restore-keys: |
-          ${{ runner.os }}-nuget-
-    
-    - name: Restore dependencies
-      run: dotnet restore NuPluginDotNet.sln
-    
-    - name: Build test project
-      run: dotnet build NuPluginDotNet.sln -c Debug --no-restore
-    
-    - name: Run unit tests with coverage
-      run: |
-        mkdir -p TestResults
-        dotnet test NuPluginDotNet.Tests/NuPluginDotNet.Tests.csproj \
-          --no-build -c Debug \
-          --verbosity normal \
-          --logger trx \
-          --logger "console;verbosity=detailed" \
-          --results-directory TestResults \
-          --collect:"XPlat Code Coverage" \
-          -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
-    
-    - name: Generate test report
-      uses: dorny/test-reporter@v1
-      if: success() || failure()
-      with:
-        name: Unit Test Results
-        path: TestResults/*.trx
-        reporter: dotnet-trx
-        fail-on-error: false  # Don't fail the workflow on test report generation issues
-      continue-on-error: true  # Don't fail the job if test report generation fails
-    
-    - name: Upload test results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: unit-test-results-${{ github.sha }}
-        path: TestResults/
-        retention-days: 7
-    
-    - name: Comment test results on PR
-      uses: EnricoMi/publish-unit-test-result-action@v2
-      if: github.event_name == 'pull_request'
-      with:
-        files: TestResults/*.trx
-        check_name: "Unit Test Results"
-        comment_title: "Unit Test Results"
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Restore dependencies
+        run: dotnet restore NuPluginDotNet.sln
+
+      - name: Build test project
+        run: dotnet build NuPluginDotNet.sln -c Debug --no-restore
+
+      - name: Run unit tests with coverage
+        run: |
+          mkdir -p TestResults
+          dotnet test NuPluginDotNet.Tests/NuPluginDotNet.Tests.csproj \
+            --no-build -c Debug \
+            --verbosity normal \
+            --logger trx \
+            --logger "console;verbosity=detailed" \
+            --results-directory TestResults \
+            --collect:"XPlat Code Coverage" \
+            -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
+
+      - name: Generate test report
+        uses: dorny/test-reporter@v1
+        if: success() || failure()
+        with:
+          name: Unit Test Results
+          path: TestResults/*.trx
+          reporter: dotnet-trx
+          fail-on-error: false # Don't fail the workflow on test report generation issues
+        continue-on-error: true # Don't fail the job if test report generation fails
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unit-test-results-${{ github.sha }}
+          path: TestResults/
+          retention-days: 7
+
+      - name: Comment test results on PR
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: github.event_name == 'pull_request'
+        with:
+          files: TestResults/*.trx
+          check_name: "Unit Test Results"
+          comment_title: "Unit Test Results"
 
   integration-test:
     name: Integration Tests
     runs-on: ubuntu-latest
     needs: build
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: '8.0.x'
-    
-    - name: Setup Nushell
-      run: |
-        # Install Nushell 0.104.1 (latest stable version)
-        curl -LO https://github.com/nushell/nushell/releases/download/0.104.1/nu-0.104.1-x86_64-unknown-linux-gnu.tar.gz
-        tar -xzf nu-0.104.1-x86_64-unknown-linux-gnu.tar.gz
-        sudo mv nu-0.104.1-x86_64-unknown-linux-gnu/nu /usr/local/bin/
-        sudo chmod +x /usr/local/bin/nu
-        
-        # Verify installation
-        nu --version
-    
-    - name: Download build artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: nu-plugin-dotnet-linux-x64-${{ github.sha }}
-        path: ./
-    
-    - name: Make binary executable
-      run: chmod +x ./nu_plugin_dotnet
-    
-    - name: Test plugin signature
-      run: |
-        echo "Testing plugin signature..."
-        timeout 10s ./nu_plugin_dotnet || true
-        echo "Plugin signature test completed"
-    
-    - name: Run integration tests
-      run: |
-        echo "Running integration tests..."
-        if [ -f "examples/integration-test.nu" ]; then
-          echo "Found examples/integration-test.nu, running..."
-          timeout 30s nu examples/integration-test.nu || echo "Integration test completed with timeout"
-        else
-          echo "No examples/integration-test.nu found, skipping integration tests"
-        fi
-      continue-on-error: true
-    
-    - name: Run simple tests
-      run: |
-        echo "Running simple tests..."
-        if [ -f "examples/simple-test.nu" ]; then
-          echo "Found examples/simple-test.nu, running..."
-          timeout 30s nu examples/simple-test.nu || echo "Simple test completed with timeout"
-        else
-          echo "No examples/simple-test.nu found, skipping simple tests"
-        fi
-      continue-on-error: true
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Setup Nushell
+        run: |
+          # Install Nushell 0.104.1 (latest stable version)
+          curl -LO https://github.com/nushell/nushell/releases/download/0.104.1/nu-0.104.1-x86_64-unknown-linux-gnu.tar.gz
+          tar -xzf nu-0.104.1-x86_64-unknown-linux-gnu.tar.gz
+          sudo mv nu-0.104.1-x86_64-unknown-linux-gnu/nu /usr/local/bin/
+          sudo chmod +x /usr/local/bin/nu
+
+          # Verify installation
+          nu --version
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: nu-plugin-dotnet-linux-x64-${{ github.sha }}
+          path: ./
+
+      - name: Make binary executable
+        run: chmod +x ./nu_plugin_dotnet
+
+      - name: Test plugin signature
+        run: |
+          echo "Testing plugin signature..."
+          timeout 10s ./nu_plugin_dotnet || true
+          echo "Plugin signature test completed"
+
+      - name: Run integration tests
+        run: |
+          echo "Running integration tests..."
+          if [ -f "examples/integration-test.nu" ]; then
+            echo "Found examples/integration-test.nu, running..."
+            timeout 30s nu examples/integration-test.nu || echo "Integration test completed with timeout"
+          else
+            echo "No examples/integration-test.nu found, skipping integration tests"
+          fi
+        continue-on-error: true
+
+      - name: Run simple tests
+        run: |
+          echo "Running simple tests..."
+          if [ -f "examples/simple-test.nu" ]; then
+            echo "Found examples/simple-test.nu, running..."
+            timeout 30s nu examples/simple-test.nu || echo "Simple test completed with timeout"
+          else
+            echo "No examples/simple-test.nu found, skipping simple tests"
+          fi
+        continue-on-error: true
 
   code-quality:
     name: Code Quality
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: '8.0.x'
-    
-    - name: Restore dependencies
-      run: dotnet restore NuPluginDotNet.sln
-    
-    - name: Code formatting check
-      run: dotnet format NuPluginDotNet.sln --no-restore --verbosity diagnostic --verify-no-changes
-      continue-on-error: true
-    
-    - name: Security scan
-      run: dotnet list NuPluginDotNet.sln package --vulnerable --include-transitive
-      continue-on-error: true
-    
-    - name: Package outdated check
-      run: dotnet list NuPluginDotNet.sln package --outdated
-      continue-on-error: true
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restore dependencies
+        run: dotnet restore NuPluginDotNet.sln
+
+      - name: Code formatting check
+        run: dotnet format NuPluginDotNet.sln --no-restore --verbosity diagnostic --verify-no-changes
+        continue-on-error: true
+
+      - name: Security scan
+        run: dotnet list NuPluginDotNet.sln package --vulnerable --include-transitive
+        continue-on-error: true
+
+      - name: Package outdated check
+        run: dotnet list NuPluginDotNet.sln package --outdated
+        continue-on-error: true
 
   status-check:
     name: Status Check
     runs-on: ubuntu-latest
     needs: [build, unit-tests, integration-test, code-quality]
     if: always()
-    
+
     steps:
-    - name: Check build status
-      run: |
-        echo "Build Status: ${{ needs.build.result }}"
-        echo "Unit Tests Status: ${{ needs.unit-tests.result }}"
-        echo "Integration Test Status: ${{ needs.integration-test.result }}"
-        echo "Code Quality Status: ${{ needs.code-quality.result }}"
-        
-        if [ "${{ needs.build.result }}" != "success" ]; then
-          echo "❌ Build failed"
-          exit 1
-        fi
-        
-        if [ "${{ needs.unit-tests.result }}" != "success" ]; then
-          echo "❌ Unit tests failed"
-          exit 1
-        fi
-        
-        echo "✅ All checks passed"
-        
-        if [ "${{ needs.integration-test.result }}" == "failure" ]; then
-          echo "⚠️  Integration tests failed, but not blocking"
-        fi
-        
-        if [ "${{ needs.code-quality.result }}" == "failure" ]; then
-          echo "⚠️  Code quality checks failed, but not blocking"
-        fi
-        
-        echo "🎉 Overall status: PASSED" 
+      - name: Check build status
+        run: |
+          echo "Build Status: ${{ needs.build.result }}"
+          echo "Unit Tests Status: ${{ needs.unit-tests.result }}"
+          echo "Integration Test Status: ${{ needs.integration-test.result }}"
+          echo "Code Quality Status: ${{ needs.code-quality.result }}"
+
+          if [ "${{ needs.build.result }}" != "success" ]; then
+            echo "❌ Build failed"
+            exit 1
+          fi
+
+          if [ "${{ needs.unit-tests.result }}" != "success" ]; then
+            echo "❌ Unit tests failed"
+            exit 1
+          fi
+
+          echo "✅ All checks passed"
+
+          if [ "${{ needs.integration-test.result }}" == "failure" ]; then
+            echo "⚠️  Integration tests failed, but not blocking"
+          fi
+
+          if [ "${{ needs.code-quality.result }}" == "failure" ]; then
+            echo "⚠️  Code quality checks failed, but not blocking"
+          fi
+
+          echo "🎉 Overall status: PASSED"
