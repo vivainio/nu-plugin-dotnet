@@ -2,6 +2,84 @@
 
 A nushell plugin that enables .NET integration and provides a reusable protocol library for creating nushell plugins in .NET.
 
+## Features
+
+This plugin provides comprehensive .NET integration for nushell with two main components:
+
+- **Complete .NET Object Integration** - Create, manipulate, and call methods on any .NET object
+- **Assembly Loading** - Load .NET assemblies and explore their types and members  
+- **Type Conversion** - Automatic conversion between nushell values and .NET types
+- **Generic Type Support** - Work with generic types using user-friendly syntax
+- **Reusable Protocol Library** - Create your own nushell plugins easily
+- **Modern Testing** - Comprehensive test suite with nushell best practices
+- **Cross-Platform** - Works on Windows, Linux, and macOS
+
+## Installation
+
+### Installing the Plugin
+
+1. **Download or build the plugin**:
+   ```bash
+   # Clone the repository
+   git clone https://github.com/vivainio/nu-plugin-dotnet.git
+   cd nu-plugin-dotnet
+   
+   # Build the plugin
+   dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o ./publish/
+   ```
+
+2. **Register with nushell**:
+   ```nushell
+   # Register the plugin
+   plugin add ./publish/nu_plugin_dotnet.exe
+   
+   # Verify installation
+   plugin list | where name == "dotnet"
+   ```
+
+### Installing the Protocol Library
+
+For creating your own plugins:
+
+```bash
+dotnet add package NuPluginDotNet.Protocol
+```
+
+## Usage
+
+### Basic .NET Object Operations
+
+```nushell
+# Create .NET objects
+let $datetime = dn new "System.DateTime" --args [2023, 12, 25]
+let $list = dn new "List[string]"
+
+# Call methods
+$list | dn call "Add" "Hello"
+$list | dn call "Add" "World"
+$datetime | dn call "AddDays" 7
+
+# Access properties
+$list | dn get "Count"
+$datetime | dn get "DayOfWeek"
+```
+
+### Assembly and Type Exploration
+
+```nushell
+# Load assemblies
+dn load "path/to/your/library.dll"
+
+# Explore loaded assemblies
+dn assemblies
+
+# List types
+dn types | where name =~ "Http"
+
+# Examine type members
+dn members "System.String"
+```
+
 ## Project Structure
 
 This repository contains two main components:
